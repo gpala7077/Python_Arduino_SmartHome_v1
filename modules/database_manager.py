@@ -102,3 +102,41 @@ class Database:
             'mqtt_data': mqtt_data
         }
         return data
+
+    def get_room_data(self, primary_key):
+
+        room_data = self.query('select * from home_rooms where room_id = %s', [primary_key])[0]
+
+        thing_data = self.query(
+            'select * from home_things where '
+            'thing_id = (select thing_id from rooms_things where rooms_room_id = %s)', [primary_key])
+
+        sensor_data = self.query(
+                        'select * from pins_configurations where thing_id = '
+                        '(select thing_id from rooms_things where rooms_room_id = %s);', [primary_key]
+                    )
+        mqtt_data = {
+            'type': 'room',
+            'channels': self.query('select * from mosquitto_channels'),
+            'configuration': self.query('select * from mosquitto_configuration')[0],
+            'listen': ['room_interrupts', 'room_commands']
+        }
+        commands_data = self.query('select * from commands where info_type = %s and info_id = %s', ['room', primary_key])
+
+        rules = self.query('select * from rules where info_type = %s and info_id = %s', ['room', primary_key])
+
+        for rule in rules:
+            rule.update(
+                {'conditions': self.query('select * from conditions where condition_rule_id = %s', [rule['rule_id']])}
+            )
+
+        data = {
+            'room_data': room_data,
+            'thing_data': thing_data,
+            'sensor_data': sensor_data,
+            'commands_data': commands_data,
+            'rules_data': rules,
+            'mqtt_data': mqtt_data
+        }
+
+        return data
