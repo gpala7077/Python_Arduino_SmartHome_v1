@@ -19,8 +19,9 @@ class Mosquitto:
 
     def add_message(self, message):
         msg = message.payload.decode("utf-8")
-        print('Received message!\n{}\n'.format(msg))
-        self.messages.add(msg)
+        topic = message.topic
+        print('\nReceived message!\n{}\n{}\n'.format(topic, msg))
+        self.messages.add((topic, msg))
 
     def connect(self):
         """Connect to MQTT Broker and set callback."""

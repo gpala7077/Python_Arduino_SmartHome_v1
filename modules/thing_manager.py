@@ -28,14 +28,18 @@ class MCU:
 
     def interrupt_callback(self, pin):
         """Interrupt callback function."""
-
         task = Thread(target=self.add_interrupt, args=[pin])
         task.start()
 
     def add_interrupt(self, pin):
         """Adds event to interrupt queue as a sub-thread"""
+
         result = self.read_write('pin_id == {}'.format(pin))
-        self.interrupts.add(result)
+        val = [0, 1][self.data['sensor_data'].query('pin_id == {}'.format(pin))['pin_interrupt_on'].to_list()[0] ==
+                     'rising']
+
+        if result['sensor_value'][0] == val:
+            self.interrupts.add(result)
 
     def configure_pin(self, pin_id, pin_type, pin_up_down):
         """Configures a pin."""
@@ -80,7 +84,7 @@ class MCU:
         n = len(pin_configuration)
 
         for i in range(n):
-            current_row = pin_configuration[i:i+1].to_dict(orient='records')[0]
+            current_row = pin_configuration[i:i + 1].to_dict(orient='records')[0]
             self.configure_pin(current_row['pin_id'], current_row['pin_type'], current_row['pin_up_down'])
             self.configure_interrupt(current_row['pin_id'], current_row['pin_interrupt_on'])
 
@@ -101,12 +105,12 @@ class MCU:
             data = self.data['sensor_data'].query(query)
 
         n = len(data)
-        results = {}
+        results = {'sensor_type': [], 'sensor_name': [], 'sensor_value': []}
         for i in range(n):
             current_row = data[i:i + 1].to_dict(orient='records')[0]
 
             if read_write == 'write':
-                value = self.GPIO.output(current_row['pin_id'], int(write))
+                self.GPIO.output(current_row['pin_id'], int(write))
 
             elif current_row['pin_type'] == 'adc':
                 value = Adafruit_ADS1x15.ADS1115().read_adc(current_row['pin_id'], gain=1)
@@ -118,13 +122,15 @@ class MCU:
             else:
                 value = self.GPIO.input(current_row['pin_id'])
 
-            if isinstance(value, dict): # If value read has multiple parts, break apart based on sensor name number
+            if isinstance(value, dict):  # If value read has multiple parts, break apart based on sensor name number
                 num = list(filter(lambda x: x.isdigit(), current_row['pin_name']))[0]
                 for val in value:
-                    results.update({val + num: value[val]})
+                    results['sensor_value'].append(value[val])
+                    results['sensor_name'].append(val + num)
+                    results['sensor_type'].append(current_row['pin_sensor'])
             else:
-                results.update({current_row['pin_name']: value})
+                results['sensor_value'].append(value)
+                results['sensor_name'].append(current_row['pin_name'])
+                results['sensor_type'].append(current_row['pin_sensor'])
 
         return results
-
-

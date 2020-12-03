@@ -14,15 +14,8 @@ class Main:
 
     def initialize(self):
         self.mosquitto = Mosquitto(self.data['mqtt_data']['configuration']['mqtt_value'])
-        self.commands = Commands(self.data['commands_data'])
+        self.commands = Commands(self.data)
         print(self.mosquitto.listen(self.data['mqtt_data']['listen']))
 
-    def monitor_messages(self):
-        while True:
-            if self.mosquitto.messages:
-                task = Thread(target=self.commands.execute, args=[self.mosquitto.messages.get()])
-                task.start()
-
     def run(self):
-        commands = Thread(target=self.monitor_messages)
-        commands.start()
+        pass

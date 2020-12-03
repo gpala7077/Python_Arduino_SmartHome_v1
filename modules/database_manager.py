@@ -63,28 +63,33 @@ class Database:
             print('last id =', last_id)
             return last_id
 
-    def get_thing_data(self, primary_key):
+    def get_thing_data(self, thing_id, role):
 
         room_data = self.query(
             'select * from home_rooms where room_id = '
             '(select rooms_room_id from rooms_things where rooms_thing_id = %s)',
-            [primary_key]).to_dict(orient='records')[0]
+            [thing_id]).to_dict(orient='records')[0]
 
         thing_data = self.query('select * from home_things where thing_id = %s',
-                                [primary_key]).to_dict(orient='records')[0]
+                                [thing_id]).to_dict(orient='records')[0]
 
         sensor_data = self.query(
             'select * '
             'from pins_configurations '
             'where thing_id = %s;',
-            [primary_key])
+            [thing_id])
 
         channels = self.query('select * from mosquitto_channels')
         channels = channels.replace('room_name', room_data['room_name'], regex=True)
         channels = channels.replace('thing_name', thing_data['thing_name'], regex=True)
 
-        listen = channels.query('channel_name == "thing_commands"')['channel_broadcast'].to_list()
-        listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].to_list()
+        if role == 'emitter':
+            listen = channels.query('channel_name == "thing_commands"')['channel_broadcast'].to_list()
+            listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].to_list()
+
+        elif role == 'receiver':
+            listen = channels.query('channel_name == "thing_info"')['channel_broadcast'].to_list()
+            listen += channels.query('channel_name == "thing_interrupt"')['channel_broadcast'].to_list()
 
         mqtt_data = {
             'channels': channels,
@@ -92,7 +97,7 @@ class Database:
             'listen': listen
         }
 
-        commands_data = self.query('select * from commands where info_type = %s and info_id = %s', ['thing', primary_key])
+        commands_data = self.query('select * from commands where info_type = %s and info_id = %s', ['thing', thing_id])
 
         data = {
             'room_data': room_data,
@@ -103,32 +108,68 @@ class Database:
         }
         return data
 
-    def get_room_data(self, primary_key):
+    def get_room_data(self, room_id):
 
-        room_data = self.query('select * from home_rooms where room_id = %s', [primary_key])[0]
+        room_data = self.query('select * from home_rooms where room_id = %s', [room_id]).to_dict(orient='records')[0]
 
         thing_data = self.query(
             'select * from home_things where '
-            'thing_id = (select thing_id from rooms_things where rooms_room_id = %s)', [primary_key])
+            'thing_id = (select thing_id from rooms_things where rooms_room_id = %s)', [room_id])
 
         sensor_data = self.query(
                         'select * from pins_configurations where thing_id = '
-                        '(select thing_id from rooms_things where rooms_room_id = %s);', [primary_key]
+                        '(select thing_id from rooms_things where rooms_room_id = %s);', [room_id]
                     )
+
+        channels = self.query('select * from mosquitto_channels')
+        channels = channels.replace('room_name', room_data['room_name'], regex=True)
+
+        listen = channels.query('channel_name == "room_commands"')['channel_broadcast'].to_list()
+        listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].to_list()
+
         mqtt_data = {
-            'type': 'room',
-            'channels': self.query('select * from mosquitto_channels'),
-            'configuration': self.query('select * from mosquitto_configuration')[0],
-            'listen': ['room_interrupts', 'room_commands']
+            'channels': channels,
+            'configuration': self.query('select * from mosquitto_configuration').to_dict(orient='records')[0],
+            'listen': listen
         }
-        commands_data = self.query('select * from commands where info_type = %s and info_id = %s', ['room', primary_key])
 
-        rules = self.query('select * from rules where info_type = %s and info_id = %s', ['room', primary_key])
+        commands_data = self.query('select * from commands where info_type = %s and info_id = %s', ['room', room_id])
 
-        for rule in rules:
-            rule.update(
-                {'conditions': self.query('select * from conditions where condition_rule_id = %s', [rule['rule_id']])}
-            )
+        rules = self.query('select * from rules where info_type = %s and info_id = %s', ['room', room_id])
+
+        data = {
+            'room_data': room_data,
+            'thing_data': thing_data,
+            'sensor_data': sensor_data,
+            'commands_data': commands_data,
+            'rules_data': rules,
+            'mqtt_data': mqtt_data
+        }
+
+        return data
+
+    def get_home_data(self):
+
+        room_data = self.query('select * from home_rooms')
+        thing_data = self.query('select * from home_things')
+        sensor_data = self.query('select * from pins_configurations')
+        channels = self.query('select * from mosquitto_channels')
+
+        listen = channels.query('channel_name == "home_commands"')['channel_broadcast'].to_list()
+        lis1 = channels.query('channel_name == "room_info"')
+
+        for room in room_data.to_dict(orient='records'):
+            l1 = lis1.replace('room_name', room['room_name'], regex=True)
+            listen += l1['channel_broadcast'].to_list()
+
+        mqtt_data = {
+            'channels': channels,
+            'configuration': self.query('select * from mosquitto_configuration').to_dict(orient='records')[0],
+            'listen': listen
+        }
+
+        commands_data = self.query('select * from commands')
+        rules = self.query('select * from rules')
 
         data = {
             'room_data': room_data,
