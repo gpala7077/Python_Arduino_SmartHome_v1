@@ -1,7 +1,4 @@
-import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import numpy
 
 
 class Rules:

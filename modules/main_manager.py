@@ -2,7 +2,6 @@ from threading import Thread
 
 from modules.commands_manager import Commands
 from modules.database_manager import Database
-from modules.hue_manager import HueAPI
 from modules.mosquitto_manager import Mosquitto
 
 
