@@ -11,15 +11,17 @@ class Main:
         self.db = Database(credentials)
         self.third_party = dict()
         self.data = None
-        self.mosquitto = None
-        self.commands = None
+        self.mosquitto = Mosquitto()
+        self.commands = Commands()
         self.interrupts = None
         self.status = dict()
 
     def initialize(self):
         print('Initializing {}'.format(self.__class__.__name__))
-        self.mosquitto = Mosquitto(self.data['mqtt_data']['configuration']['mqtt_value'])
-        self.commands = Commands(self.data)
+        self.mosquitto.host_ip = self.data['mqtt_data']['configuration']['mqtt_value']
+        self.commands.data = self.data
+        self.commands.mosquitto = self.mosquitto
+        print(self.mosquitto.connect())
         print(self.mosquitto.listen(self.data['mqtt_data']['listen']))
 
     def monitor_messages(self):
@@ -27,16 +29,18 @@ class Main:
 
         while True:
             if self.mosquitto.messages:
-                task = Thread(target=self.process_message)
-                task.start()
+                self.process_message()
+                # task = Thread(target=self.process_message)
+                # task.start()
 
     def monitor_interrupts(self):
         print('Monitoring All Interrupt Events for {}\n'.format(self.__class__.__name__))
 
         while True:
             if self.interrupts:
-                task = Thread(target=self.process_interrupt)
-                task.start()
+                self.process_interrupt()
+                # task = Thread(target=self.process_interrupt)
+                # task.start()
 
     def process_message(self):
         print('Processing Message for {}'.format(self.__class__.__name__))

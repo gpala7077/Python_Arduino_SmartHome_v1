@@ -35,9 +35,11 @@ class Room(Main):
         return df
 
     def process_interrupt(self):
+        super(Room, self).process_interrupt()
         print(self.commands.execute(self.interrupts.get()))
 
     def process_message(self):
+        super(Room, self).process_interrupt()
         topic, msg = self.mosquitto.messages.get()
 
         if 'interrupt' in topic:

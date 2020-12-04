@@ -107,8 +107,8 @@ class Command:
 
 
 class Commands:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self):
+        self.data = None
         self.r_pi_read_write = None
         self.current_status = None
         self.mosquitto = None
@@ -140,9 +140,9 @@ class Commands:
 
     def execute(self, command):
         command = self.check_command(command)
+        print(command)
 
         if isinstance(command, Command):
-            print(command)
             # Raspberry Pi MCU commands
             if command.command_type == 'write':
                 self.r_pi_read_write(command.get_query(), 'write', command.command_value)
@@ -157,9 +157,10 @@ class Commands:
                 self.mosquitto.broadcast(self.data['mqtt_data']['channels'].
                                          query('channel_name=="thing_info"')['channel_broadcast'].to_list(), result)
 
+            # Phillips Hue - Third Party Commands
             elif command.command_type == 'hue':
-                command.command_value = command.command_value.replace("'", "\"")
 
+                command.command_value = command.command_value.replace("'", "\"")
                 if command.command_sensor == 'group':
                     print(self.third_party['hue'].set_group(self.data['info_id'], command.command_value))
 
@@ -167,17 +168,30 @@ class Commands:
                     num = list(filter(lambda x: x.isdigit(), command.command_sensor))[0]
                     print(self.third_party['hue'].set_light(num, command.command_value))
 
+            # Broadcasting to Thing commands
+            elif command.command_type == 'broadcast':
+
+                if command.command_sensor == 'group':
+                    channel = self.data['mqtt_data']['channels'].query('channel_name == "group_commands"')[
+                        'channel_broadcast'].to_list()
+                    self.mosquitto.broadcast(channel, command.command_value)
+
+                elif 'thing' in command.command_sensor:
+                    num = list(filter(lambda x: x.isdigit(), command.command_sensor))[0]
+                    channel = self.data['mqtt_data']['broadcast'][num]
+                    self.mosquitto.broadcast(channel, command.command_value)
+
             return 'Command executed successfully'
 
         elif isinstance(command, Rule) and command.check_conditions(self.current_status()):
-            print(command)
-            if command.rule_timer > 0:
-                try:
-                    self.timers[command.rule_id].cancel()
-                    self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
-                    return self.execute(command.commands[0])
-                except KeyError:
-                    self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
-                    return self.execute(command.commands[0])
+            if command.rule_timer > 0 and command.rule_id in self.timers:
+                self.timers[command.rule_id].cancel()
+                self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
+                return self.execute(command.commands[0])
+
+            elif command.rule_timer > 0:
+                self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
+                return self.execute(command.commands[0])
+
             else:
                 return self.execute(command.commands[0])

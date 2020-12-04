@@ -19,18 +19,19 @@ class Thing_Main(Main):
     def initialize(self):
         super(Thing_Main, self).initialize()
         self.commands.r_pi_read_write = self.r_pi.read_write
-        self.commands.mosquitto = self.mosquitto
         self.interrupts = self.r_pi.interrupts
 
         print(self.r_pi.start())
 
     def process_interrupt(self):
+        super(Thing_Main, self).process_interrupt()
         payload = self.interrupts.get()
         channels = self.data['mqtt_data']['channels'].query(
             'channel_name == "thing_interrupt"')['channel_broadcast'].to_list()
         self.mosquitto.broadcast(channels, payload)
 
     def process_message(self):
+        super(Thing_Main, self).process_message()
         topic, msg = self.mosquitto.messages.get()
         self.commands.execute(msg)
 

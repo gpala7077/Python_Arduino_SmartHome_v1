@@ -6,12 +6,11 @@ from modules.miscellaneous import Queue
 
 
 class Mosquitto:
-    def __init__(self, host_ip):
+    def __init__(self):
         print('Starting up MQTT Client')
         self.client = mqtt.Client()
-        self.host_ip = host_ip
+        self.host_ip = None
         self.messages = Queue('FIFO')
-        self.connect()
 
     def mosquitto_callback(self, client, userdata, message):
         """Mosquitto callback function."""
@@ -24,6 +23,7 @@ class Mosquitto:
         topic = message.topic
         print('Received message!\n{}\n{}\n'.format(topic, msg))
         self.messages.add((topic, msg))
+        return 'Added message to Queue\n'
 
     def connect(self):
         """Connect to MQTT Broker and set callback."""
@@ -31,6 +31,7 @@ class Mosquitto:
         print('Connecting to broker... {}'.format(self.host_ip))
         self.client.connect(self.host_ip)
         self.client.on_message = self.mosquitto_callback
+        return 'Connected\n'
 
     def listen(self, channels):
         """Creates a sub-thread and actively listens to given channels."""

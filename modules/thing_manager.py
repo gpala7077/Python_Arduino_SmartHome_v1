@@ -104,7 +104,7 @@ class MCU:
             data = self.data['sensor_data']
         else:
             data = self.data['sensor_data'].query(query)
-
+        value = int()
         n = len(data)
         results = {'sensor_type': [], 'sensor_name': [], 'sensor_value': []}
         for i in range(n):

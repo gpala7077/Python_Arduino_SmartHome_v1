@@ -128,13 +128,18 @@ class Database:
         listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].to_list()
 
         l1 = channels.query('channel_name=="thing_interrupt"')
+        b1 = channels.query('channel_name=="thing_commands"')
+        things = {}
         for thing in thing_data.to_dict(orient='records'):
             listen += l1.replace('thing_name', thing['thing_name'], regex=True)['channel_broadcast'].to_list()
+            things.update({thing['thing_id']: b1.replace('thing_name', thing['thing_name'], regex=True)[
+                'channel_broadcast'].to_list()})
 
         mqtt_data = {
             'channels': channels,
             'configuration': self.query('select * from mosquitto_configuration').to_dict(orient='records')[0],
-            'listen': listen
+            'listen': listen,
+            'broadcast': things
         }
 
         commands_data = self.query('select * from commands where info_level = %s and info_id = %s', [2, room_id])
