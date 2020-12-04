@@ -20,22 +20,12 @@ class Thing_Main(Main):
         super(Thing_Main, self).initialize()
         self.commands.r_pi_read_write = self.r_pi.read_write
         self.commands.mosquitto = self.mosquitto
+        self.interrupts = self.r_pi.interrupts
+
         print(self.r_pi.start())
 
-    def monitor_messages(self):
-        while True:
-            if self.mosquitto.messages:
-                task = Thread(target=self.process_message)
-                task.start()
-
-    def monitor_interrupts(self):
-        while True:
-            if self.r_pi.interrupts:
-                task = Thread(target=self.process_interrupt)
-                task.start()
-
     def process_interrupt(self):
-        payload = self.r_pi.interrupts.get()
+        payload = self.interrupts.get()
         channels = self.data['mqtt_data']['channels'].query(
             'channel_name == "thing_interrupt"')['channel_broadcast'].to_list()
         self.mosquitto.broadcast(channels, payload)
@@ -48,9 +38,6 @@ class Thing_Main(Main):
         super(Thing_Main, self).run()
 
         activity = Thread(target=self.monitor_interrupts)
-        commands = Thread(target=self.monitor_messages)
-
-        commands.start()
         activity.start()
         while True:
             pass

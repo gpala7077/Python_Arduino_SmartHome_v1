@@ -1,11 +1,13 @@
-import datetime
 import json
+
 import requests
+
+
 # from modules.sql_database import Database
 
 
 class HueAPI:
-    def __init__(self,hue_credentials):
+    def __init__(self, hue_credentials):
         self.hue_credentials = hue_credentials
         self.ip_address = ''
         self.user = ''
@@ -20,14 +22,14 @@ class HueAPI:
         self.data = get_data.json()
         return
 
-    def set_light(self,hue_id,light_command):
-        light_command = json.dumps(light_command)
+    def set_light(self, hue_id, light_command):
+        # light_command = json.dumps(light_command)
         url = 'http://{}/api/{}/lights/{}/state'.format(self.ip_address, self.user, hue_id)
         response = requests.put(url=url, data=light_command).json()
         return response
 
-    def set_group(self,group_id,group_command):
-        group_command = json.dumps(group_command)
+    def set_group(self, group_id, group_command):
+        # group_command = json.dumps(group_command)
         url = 'http://{}/api/{}/groups/{}/action'.format(self.ip_address, self.user, group_id)
         response = requests.put(url=url, data=group_command).json()
         return response
@@ -39,15 +41,14 @@ class HueAPI:
 
     def add_group(self, group_name, hue_lights):
         group_command = {
-            'name':group_name,
-            'lights':hue_lights
+            'name': group_name,
+            'lights': hue_lights
         }
 
         group_command = json.dumps(group_command)
         url = 'http://{}/api/{}/groups/'.format(self.ip_address, self.user)
         response = requests.post(url=url, data=group_command).json()
         return response
-
 
 # class HueManager:
 #     def __init__(self, db_credentials, hue_credentials):

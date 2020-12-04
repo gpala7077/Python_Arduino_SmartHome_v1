@@ -1,10 +1,11 @@
 import ast
 import datetime
 from collections import defaultdict
+
+from modules.commands_manager import Commands
 from modules.hue_manager import HueAPI
 from modules.mosquitto_manager import Mosquitto
 from modules.rules_manager import Rules
-from modules.commands_manager import Commands
 
 
 def combine_data(dictionary):
@@ -114,7 +115,7 @@ class Room:
     def get_third_party_data(self, app):
         if app == 'hue':
             data = self.third_party[app].get_group(self.data['room_data']['room_id'])
-            remove = ['name', 'sensors', 'type', 'recycle','class','action']
+            remove = ['name', 'sensors', 'type', 'recycle', 'class', 'action']
             for key in remove:
                 data.pop(key)
         return data

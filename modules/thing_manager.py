@@ -1,8 +1,9 @@
 from threading import Thread
 
-import RPi.GPIO as GPIO
 import Adafruit_ADS1x15
 import Adafruit_DHT
+import RPi.GPIO as GPIO
+
 from modules.miscellaneous import Queue
 
 
@@ -24,7 +25,7 @@ class MCU:
         self.GPIO.setmode(self.GPIO.BCM)
         self.initialize()
 
-        return 'Raspberry Pi is up and running'
+        return 'Raspberry Pi is up and running\n'
 
     def interrupt_callback(self, pin):
         """Interrupt callback function."""

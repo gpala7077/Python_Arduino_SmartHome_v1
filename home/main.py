@@ -1,5 +1,6 @@
 from threading import Thread
 
+from modules.hue_manager import HueAPI
 from modules.main_manager import Main
 from modules.room_manager import Room
 
@@ -20,8 +21,16 @@ class Home(Main):
 
     def initialize(self):
         super(Home, self).initialize()
+        self.initialize_third_party()
         for room in self.rooms:
+            self.rooms[room].third_party = self.third_party
             print(self.rooms[room].initialize())
+
+    def initialize_third_party(self):
+
+        self.third_party.update(
+            {'hue': HueAPI(hue_credentials={'192.168.50.34': 'pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj'})}
+        )
 
     def run(self):
         super(Home, self).run()

@@ -1,5 +1,7 @@
-import paho.mqtt.client as mqtt
 from threading import Thread
+
+import paho.mqtt.client as mqtt
+
 from modules.miscellaneous import Queue
 
 
@@ -20,7 +22,7 @@ class Mosquitto:
     def add_message(self, message):
         msg = message.payload.decode("utf-8")
         topic = message.topic
-        print('\nReceived message!\n{}\n{}\n'.format(topic, msg))
+        print('Received message!\n{}\n{}\n'.format(topic, msg))
         self.messages.add((topic, msg))
 
     def connect(self):
@@ -34,19 +36,19 @@ class Mosquitto:
         """Creates a sub-thread and actively listens to given channels."""
 
         for channel in channels:
-            print('Listening to ...\n{}\n'.format(channel))
+            print('Listening to... {}'.format(channel))
             self.client.subscribe(channel)
 
         listen = Thread(target=self.client.loop_forever)
         listen.start()
 
-        return 'Actively Listening for MQTT Broadcasts'
+        return 'Actively Listening for MQTT Broadcasts\n'
 
     def broadcast(self, channels, payload):
         """Broadcast payload to given channels."""
 
         for channel in channels:
-            print('\nBroadcasting on...\n{}\nPayload : {}\n'.format(channel, payload))
+            print('\nBroadcasting on...\n{}\nPayload : {}'.format(channel, payload))
             self.client.publish(channel, str(payload))
 
-        return 'Payload sent'
+        return 'Payload sent\n'

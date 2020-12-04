@@ -40,9 +40,9 @@ class Database:
 
     def query(self, query, values=None):
         """Query the connecting database. Returns a pandas data frame."""
-        self.db.commit()                    # Ensure all changes are committed before querying.
+        self.db.commit()  # Ensure all changes are committed before querying.
 
-        if 'select' in query:               # If query is select type. return pandas data frame
+        if 'select' in query:  # If query is select type. return pandas data frame
             if values is not None:
                 self.cursor.execute(query, values)
             else:
@@ -56,7 +56,7 @@ class Database:
 
             return data
 
-        elif 'insert' in query:             # If query is insert type. return primary key of the inserted row.
+        elif 'insert' in query:  # If query is insert type. return primary key of the inserted row.
             self.cursor.execute(query, values)
             self.db.commit()
             last_id = self.cursor.getlastrowid()
@@ -89,7 +89,6 @@ class Database:
 
         elif role == 'receiver':
             listen = channels.query('channel_name == "thing_info"')['channel_broadcast'].to_list()
-            listen += channels.query('channel_name == "thing_interrupt"')['channel_broadcast'].to_list()
 
         mqtt_data = {
             'channels': channels,
@@ -97,9 +96,10 @@ class Database:
             'listen': listen
         }
 
-        commands_data = self.query('select * from commands where info_type = %s and info_id = %s', ['thing', thing_id])
+        commands_data = self.query('select * from commands where info_level = %s and info_id = %s', [3, thing_id])
 
         data = {
+            'info_id': thing_id,
             'room_data': room_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,
@@ -117,9 +117,9 @@ class Database:
             'thing_id = (select thing_id from rooms_things where rooms_room_id = %s)', [room_id])
 
         sensor_data = self.query(
-                        'select * from pins_configurations where thing_id = '
-                        '(select thing_id from rooms_things where rooms_room_id = %s);', [room_id]
-                    )
+            'select * from pins_configurations where thing_id = '
+            '(select thing_id from rooms_things where rooms_room_id = %s);', [room_id]
+        )
 
         channels = self.query('select * from mosquitto_channels')
         channels = channels.replace('room_name', room_data['room_name'], regex=True)
@@ -127,22 +127,31 @@ class Database:
         listen = channels.query('channel_name == "room_commands"')['channel_broadcast'].to_list()
         listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].to_list()
 
+        l1 = channels.query('channel_name=="thing_interrupt"')
+        for thing in thing_data.to_dict(orient='records'):
+            listen += l1.replace('thing_name', thing['thing_name'], regex=True)['channel_broadcast'].to_list()
+
         mqtt_data = {
             'channels': channels,
             'configuration': self.query('select * from mosquitto_configuration').to_dict(orient='records')[0],
             'listen': listen
         }
 
-        commands_data = self.query('select * from commands where info_type = %s and info_id = %s', ['room', room_id])
+        commands_data = self.query('select * from commands where info_level = %s and info_id = %s', [2, room_id])
 
-        rules = self.query('select * from rules where info_type = %s and info_id = %s', ['room', room_id])
+        rules = self.query('select * from rules where info_level = %s and info_id = %s', [2, room_id])
+
+        conditions = self.query('select * from conditions where condition_rule_id = '
+                                '(select rule_id from rules where info_level = %s and info_id = %s)', [2, room_id])
 
         data = {
+            'info_id': room_id,
             'room_data': room_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,
             'commands_data': commands_data,
             'rules_data': rules,
+            'conditions_data': conditions,
             'mqtt_data': mqtt_data
         }
 
