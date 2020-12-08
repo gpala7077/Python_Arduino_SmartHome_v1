@@ -1,95 +1,104 @@
-import json
-from datetime import datetime
 from threading import Thread
 
 import pandas as pd
 
 from modules.main_manager import Main
-from modules.miscellaneous import Queue
 
 
 class Room(Main):
+    """Represents a room in the house.
+
+    Attributes
+    ----------
+    data : dict
+        Dictionary of pandas data frames
+    things : dict
+        Dictionary of things associated with room
+
+    Parameters
+    ----------
+    credentials : dict
+        Database credentials defined as {'username': 'un', 'password': 'pwd', 'database': 'name', 'host': 'IP'}
+
+    room_id : int
+        Primary key for room
+
+    """
 
     def __init__(self, credentials, room_id):
-        super().__init__(credentials)
-        self.data = self.db.get_room_data(room_id)
-        self.things = {thing['thing_name']: Thing(credentials, thing['thing_id'])
+        super().__init__(credentials)                                               # Call super class
+        self.data = self.db.get_room_data(room_id)                                  # Get room data from db
+        self.things = {thing['thing_name']: Thing(credentials, thing['thing_id'])   # Create dictionary of Things
                        for thing in self.data['thing_data'].to_dict(orient='records')}
-        self.interrupts = Queue('LIFO')
 
     def initialize(self):
-        super(Room, self).initialize()
-        self.commands.current_status = self.current_status
-        self.commands.third_party = self.third_party
-        for thing in self.things:
+        """Initialize Room."""
+
+        super(Room, self).initialize()                                          # Call super class
+        self.commands.current_status = self.current_status                      # reference status to commands
+        self.commands.third_party = self.third_party                            # Reference 3rd party API to commands
+        for thing in self.things:                                               # Initialize all things
+            self.things[thing].__class__.__name__ = thing
             print(self.things[thing].initialize())
-        return 'Room initialized\n'
+        return '{} initialized\n'.format(self.__class__.__name__)
 
     def current_status(self):
-        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value', 'time_stamp'])
-        for thing in self.things:
-            df = df.append(self.things[thing].sensors.query('time_stamp=="{}"'.format(
-                self.things[thing].sensors['time_stamp'].max()
-            )))
+        """Get current room status."""
 
+        print('Getting current status for {}'.format(self.__class__.__name__))
+        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value', 'time_stamp'])# Create empty data frame
+
+        for thing in self.things:
+            df = df.append(self.things[thing].sensors().query('time_stamp=="{}"'.format(
+                self.things[thing].sensors()['time_stamp'].max()
+            )))
         return df
 
-    def process_interrupt(self):
-        super(Room, self).process_interrupt()
-        print(self.commands.execute(self.interrupts.get()))
-
-    def process_message(self):
-        super(Room, self).process_interrupt()
-        topic, msg = self.mosquitto.messages.get()
-
-        if 'interrupt' in topic:
-            msg = msg.replace("'", "\"")
-            msg = json.loads(msg)
-            rows = len(msg['sensor_name'])
-            msg.update({'time_stamp': [datetime.now()] * rows})
-            msg = pd.DataFrame.from_dict(msg)
-            self.interrupts.add(msg)
-
-        elif 'commands' in topic:
-            pass
-
     def run(self):
-        super(Room, self).run()
-        for thing in self.things:
-            Thread(target=self.things[thing].run).start()
+        """Initialize all the things in room."""
 
-        activity = Thread(target=self.monitor_interrupts)
-        activity.start()
-
-        while True:
-            pass
+        super(Room, self).run()                             # Call super class
+        for thing in self.things:                           # Initialize all things associated with the room.
+            Thread(target=self.things[thing].run).start()   # Run main loops
 
 
 class Thing(Main):
+    """Represents an MCU
+
+    Attributes
+    ----------
+    data : dict
+        Dictionary of pandas data frames
+
+    sensors : DataFrame
+        Pandas DataFrame of attached sensors
+
+    Parameters
+    ----------
+    credentials : dict
+        Database credentials defined as {'username': 'un', 'password': 'pwd', 'database': 'name', 'host': 'IP'}
+
+    thing_id : int
+        Primary key for room
+
+    """
 
     def __init__(self, credentials, thing_id):
-        super().__init__(credentials)
-        self.data = self.db.get_thing_data(thing_id, 'receiver')
-        self.sensors = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value', 'time_stamp'])
+        super().__init__(credentials)                                       # Call super class
+        self.data = self.db.get_thing_data(thing_id, 'receiver')            # get thing receiver data
+        self.sensors = pd.DataFrame()                                       # Initialize empty data frame
 
     def initialize(self):
-        super(Thing, self).initialize()
-        return 'Thing initialized\n'
+        """Initialize thing receiver"""
 
-    def process_message(self):
-        topic, msg = self.mosquitto.messages.get()
-
-        if 'info' in topic:
-            msg = msg.replace("'", "\"")
-            msg = json.loads(msg)
-            rows = len(msg['sensor_name'])
-            msg.update({'time_stamp': [datetime.now()] * rows})
-            msg = pd.DataFrame.from_dict(msg)
-            self.sensors = self.sensors.append(msg)
+        super(Thing, self).initialize()                                     # Call super class
+        self.sensors = self.mosquitto.get_sensors                           # reference get_sensors
+        return '{} initialized\n'.__class__.__name__
 
     def run(self):
-        super(Thing, self).run()
-        self.mosquitto.broadcast(self.data['mqtt_data']['channels'].
-                                 query('channel_name == "thing_commands"')['channel_broadcast'], 'status')
-        while True:
-            pass
+        """Initialize thing. """
+
+        super(Thing, self).run()                                            # Call super class
+        payload = 'status'                                                  # define payload
+        channel = self.data['mqtt_data']['channels_dict']['thing_commands'] # define channel
+        self.mosquitto.broadcast(channel, payload)                          # Request thing status

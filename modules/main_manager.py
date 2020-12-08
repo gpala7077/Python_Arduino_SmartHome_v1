@@ -1,54 +1,58 @@
-from threading import Thread
-
 from modules.commands_manager import Commands
 from modules.database_manager import Database
 from modules.mosquitto_manager import Mosquitto
 
 
 class Main:
+    """Base framework for smart home main loops
+
+    Attributes
+    ----------
+    db : object
+        Object of type Database()
+
+    third_party : dict
+        Dictionary of third_party objects
+
+    data : dict
+        Dictionary containing all necessary data defined as {data_name : data}
+
+    mosquitto : object
+        Object of type Mosquitto
+
+    commands : object
+        Object of type Commands
+
+    status : DataFrame
+        Pandas data frame containing current sensor data
+
+    Parameters
+    ----------
+
+    credentials : dict
+        Database credentials defined as {'username': 'un', 'password': 'pwd', 'database': 'name', 'host': 'IP'}
+
+    """
     def __init__(self, credentials):
-        print('Loading up {}...'.format(self.__class__.__name__))
-        self.db = Database(credentials)
+        print('Loading up {}...'.format(self.__class__.__name__))               # Print class name
+        self.db = Database(credentials)                                         # Set credentials
         self.third_party = dict()
         self.data = None
         self.mosquitto = Mosquitto()
         self.commands = Commands()
         self.interrupts = None
-        self.status = dict()
+        self.status = None
 
     def initialize(self):
+        """Start up program"""
         print('Initializing {}'.format(self.__class__.__name__))
-        self.mosquitto.host_ip = self.data['mqtt_data']['configuration']['mqtt_value']
-        self.commands.data = self.data
-        self.commands.mosquitto = self.mosquitto
-        print(self.mosquitto.connect())
-        print(self.mosquitto.listen(self.data['mqtt_data']['listen']))
-
-    def monitor_messages(self):
-        print('Monitoring All Incoming Messages for {}\n'.format(self.__class__.__name__))
-
-        while True:
-            if self.mosquitto.messages:
-                self.process_message()
-                # task = Thread(target=self.process_message)
-                # task.start()
-
-    def monitor_interrupts(self):
-        print('Monitoring All Interrupt Events for {}\n'.format(self.__class__.__name__))
-
-        while True:
-            if self.interrupts:
-                self.process_interrupt()
-                # task = Thread(target=self.process_interrupt)
-                # task.start()
-
-    def process_message(self):
-        print('Processing Message for {}'.format(self.__class__.__name__))
-
-    def process_interrupt(self):
-        print('Processing Interrupt for {}'.format(self.__class__.__name__))
+        self.mosquitto.host_ip = self.data['mqtt_data']['configuration']['mqtt_value']    # Get broker ip address
+        self.commands.data = self.data                                                    # commands data
+        self.commands.mosquitto = self.mosquitto                                          # Give command access to MQTT
+        self.mosquitto.commands = self.commands                                           # Give MQTT access to commands
+        print(self.mosquitto.connect())                                                   # Log info
+        print(self.mosquitto.listen(self.data['mqtt_data']['listen']))                    # Log info
 
     def run(self):
+        """Start main loop"""
         print('Starting Main Loop for {}'.format(self.__class__.__name__))
-        status = Thread(target=self.monitor_messages)
-        status.start()
