@@ -154,7 +154,8 @@ class Database:
             channels_dict.update({channel['channel_name']: [channel['channel_broadcast']]})
 
         mqtt_data = {
-            'channels': channels_dict,
+            'channels_dict': channels_dict,
+            'channels': channels,
             'configuration': self.query('select * from mosquitto_configuration').to_dict(orient='records')[0],
             'listen': listen,
             'broadcast': things
@@ -194,7 +195,12 @@ class Database:
             l1 = lis1.replace('room_name', room['room_name'], regex=True)
             listen += l1['channel_broadcast'].tolist()
 
+        channels_dict = {}
+        for channel in channels.to_dict(orient='records'):
+            channels_dict.update({channel['channel_name']: [channel['channel_broadcast']]})
+
         mqtt_data = {
+            'channels_dict': channels_dict,
             'channels': channels,
             'configuration': self.query('select * from mosquitto_configuration').to_dict(orient='records')[0],
             'listen': listen

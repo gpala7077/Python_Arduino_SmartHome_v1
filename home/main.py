@@ -58,6 +58,9 @@ class Home(Main):
         for room in self.rooms:                                             # Begin room sub-threads
             Thread(target=self.rooms[room].run).start()
 
+        while True:
+            pass
+
 
 if __name__ == '__main__':
     main = Home(credentials)                                                # Create Main class

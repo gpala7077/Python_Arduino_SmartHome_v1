@@ -98,7 +98,9 @@ class Thing(Main):
     def run(self):
         """Initialize thing. """
 
-        super(Thing, self).run()                                            # Call super class
-        payload = 'status'                                                  # define payload
-        channel = self.data['mqtt_data']['channels_dict']['thing_commands'] # define channel
-        self.mosquitto.broadcast(channel, payload)                          # Request thing status
+        super(Thing, self).run()                                                # Call super class
+        payload = 'status'                                                      # define payload
+        channel = self.data['mqtt_data']['channels'].query(
+            'channel_name == "thing_commands"')['channel_broadcast'].tolist()   # Prepare channel
+
+        self.mosquitto.broadcast(channel, payload)                              # Request thing status

@@ -46,13 +46,14 @@ class Thing_Main(Main):
         """Process active interrupt."""
         print('Processing Interrupt for {}'.__class__.__name__)                            # Call super class
         payload = self.interrupts.get()                                                    # Prepare payload
-        channels = self.data['mqtt_data']['channels']['thing_interrupt']                   # Prepare channel
+        channels = self.data['mqtt_data']['channels'].query('channel_name == "thing_interrupt"')[
+            'channel_broadcast'].tolist()                                                  # Prepare channel
         self.mosquitto.broadcast(channels, payload)                                        # Broadcast interrupt
 
     def run(self):
         """Start main loop."""
-
         super(Thing_Main, self).run()                                                       # Call super class
+        self.commands.execute('status')
 
 
 if __name__ == '__main__':
