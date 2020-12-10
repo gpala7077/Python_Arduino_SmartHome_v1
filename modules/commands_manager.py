@@ -366,10 +366,9 @@ class Commands:
 
             # ***************** App commands *****************
             elif command.command_type == 'app':
-                if command.command_name == 'get_room_status':
-                    channel = self.data['mqtt_data']['channels_dict']['room_commands']
-                    payload = command.command_value
-                    self.mosquitto.broadcast(channel, str(payload))
+                channel = self.data['mqtt_data']['channels_dict']['room_commands']
+                payload = command.command_value
+                self.mosquitto.broadcast(channel, str(payload))
 
             return 'Command executed successfully'
 

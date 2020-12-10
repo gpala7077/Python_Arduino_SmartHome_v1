@@ -1,14 +1,13 @@
 import sys
 import time
 from functools import partial
-from threading import Thread
 
 from mysql.connector import Error
 
 from modules.commands_manager import Commands
 from modules.database_manager import Database
 from modules.mosquitto_manager import Mosquitto
-
+from PySide2.QtCore import QThread
 from PySide2.QtWidgets import (
     QApplication,
     QGridLayout,
@@ -111,16 +110,42 @@ class Rooms(Window):
                 self.show_screen, current_row, close_screen))
 
 
+class DynamicLabel(QThread):
+
+    def __init__(self, label, status):
+        QThread.__init__(self)
+        self.label = label
+        self.status = status
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        while True:
+            status = self.status()
+            msg = ''
+            if not status.empty:
+                status = status.to_dict(orient='records')
+                for record in status:
+                    msg += '{sensor_name:20} {sensor_type:20} {sensor_value}\n'.format(**record)
+                if self.label.text() != msg:
+                    self.label.setText(msg)
+
+
 class Room(Window):
     def __init__(self, window_title, room_data):
         super(Room, self).__init__(window_title)
         self.data = room_data
         self.mosquitto = Mosquitto()
         self.commands = Commands()
+
+        self.command = None
+        self.threads = {}
+
+        self.current_status = QLabel('Status')
         self.execute_command = QPushButton('Execute')
         self.available_commands = QComboBox()
         self.name = QLabel(self.data['room_data']['room_name'])
-        self.sensors = self.mosquitto.get_sensors
 
     def connect_to_room(self):
         self.mosquitto.host_ip = self.data['mqtt_data']['configuration']['mqtt_value']
@@ -131,26 +156,50 @@ class Room(Window):
         print(self.mosquitto.connect())  # Log info
         print(self.mosquitto.listen(self.data['mqtt_data']['channels_dict']['room_info']))  # Log info
 
+    def load_threads(self):
+        self.threads.update({0: DynamicLabel(self.current_status, self.mosquitto.get_sensors)})
+
     def load_window(self):
         super(Room, self).load_window()
         self.connect_to_room()
+        self.load_threads()
+
         for command in self.data['commands_data'].query('command_type == "app"')['command_name'].tolist():
             self.available_commands.addItem(command)
+
+        self.layout.addWidget(self.current_status)
         self.layout.addWidget(self.execute_command)
         self.layout.addWidget(self.available_commands)
 
     def connect_widgets(self):
         super(Room, self).connect_widgets()
-        command = self.data['commands_data'].query('command_type == "app" and '
-                                                   'command_sensor == "room" and '
-                                                   'command_name == "{}" and '
-                                                   'info_id == "{}" and '
-                                                   'info_level == "{}"'.format(self.available_commands.currentText(),
-                                                                               self.data['info_id'],
-                                                                               self.data['info_level'])).to_dict(
-            orient='records')[0]
+        for thread in self.threads:
+            self.threads[thread].start()
 
-        self.execute_command.clicked.connect(lambda: self.commands.execute(command))
+        self.execute_command.clicked.connect(lambda: self.commands.execute(self.command))
+        self.available_commands.currentTextChanged.connect(self.update_command)
+
+    def update_command(self):
+        self.command = self.data['commands_data'].query(
+            'command_type == "app" and '
+            'command_sensor == "room" and '
+            'command_name == "{}" and '
+            'info_id == "{}" and '
+            'info_level == "{}"'.format(
+                self.available_commands.currentText(),
+                self.data['info_id'],
+                self.data['info_level'])).to_dict(orient='records')[0]
+
+
+class Db_Management(Window):
+    def __init__(self):
+        super(Db_Management, self).__init__()
+
+    def load_window(self):
+        super(Db_Management, self).load_window()
+
+    def connect_widgets(self):
+        super(Db_Management, self).connect_widgets()
 
 
 class Main_Menu(Window):
