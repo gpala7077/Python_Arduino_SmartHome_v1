@@ -1,3 +1,4 @@
+import time
 from threading import Thread
 
 import pandas as pd
@@ -46,12 +47,15 @@ class Room(Main):
         """Get current room status."""
 
         print('Getting current status for {}'.format(self.__class__.__name__))
-        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value', 'time_stamp'])# Create empty data frame
+        # df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value', 'time_stamp'])# Create empty df
+        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])# Create empty data frame
 
         for thing in self.things:
-            df = df.append(self.things[thing].sensors().query('time_stamp=="{}"'.format(
-                self.things[thing].sensors()['time_stamp'].max()
-            )))
+            # df = df.append(self.things[thing].sensors().query('time_stamp=="{}"'.format(
+            #     self.things[thing].sensors()['time_stamp'].max()
+            # )))
+            df = df.append(self.things[thing].sensors())
+
         return df
 
     def run(self):
@@ -60,6 +64,12 @@ class Room(Main):
         super(Room, self).run()                             # Call super class
         for thing in self.things:                           # Initialize all things associated with the room.
             Thread(target=self.things[thing].run).start()   # Run main loops
+
+        while True:                                         # Main tasks for room
+            if 0 not in self.tasks:
+                # self.tasks.update({0: Thread(target=self.get_status)})
+                # self.tasks[0].start()
+                pass
 
 
 class Thing(Main):
@@ -86,7 +96,6 @@ class Thing(Main):
     def __init__(self, credentials, thing_id):
         super().__init__(credentials)                                       # Call super class
         self.data = self.db.get_thing_data(thing_id, 'receiver')            # get thing receiver data
-        self.sensors = pd.DataFrame()                                       # Initialize empty data frame
 
     def initialize(self):
         """Initialize thing receiver"""
@@ -95,12 +104,25 @@ class Thing(Main):
         self.sensors = self.mosquitto.get_sensors                           # reference get_sensors
         return '{} initialized\n'.__class__.__name__
 
-    def run(self):
-        """Initialize thing. """
-
-        super(Thing, self).run()                                                # Call super class
+    def get_status(self):
         payload = 'status'                                                      # define payload
         channel = self.data['mqtt_data']['channels'].query(
             'channel_name == "thing_commands"')['channel_broadcast'].tolist()   # Prepare channel
 
-        self.mosquitto.broadcast(channel, payload)                              # Request thing status
+        while self.sensors().empty:
+            print('Requesting sensor information for {}'.format(self.__class__.__name__))
+            self.mosquitto.broadcast(channel, payload)  # Request thing status
+            time.sleep(10)
+
+        self.tasks.pop(0)
+
+    def run(self):
+        """Initialize thing. """
+        super(Thing, self).run()                                                # Call super class
+
+        while True:
+            if 0 not in self.tasks and self.sensors().empty:                    # Get sensor status
+                self.tasks.update({0: Thread(target=self.get_status)})
+                self.tasks[0].start()
+
+

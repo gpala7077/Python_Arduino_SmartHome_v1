@@ -15,7 +15,7 @@ class Mosquitto:
         self.messages = Queue('FIFO')
         self.interrupts = Queue('LIFO')
         self.commands = None
-        self.sensors = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value', 'time_stamp'])
+        self.sensors = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])
 
     def mosquitto_callback(self, client, userdata, message):
         """Mosquitto callback function."""
@@ -44,8 +44,6 @@ class Mosquitto:
         if 'interrupt' in topic:                                # If interrupt
             msg = msg.replace("'", "\"")                        # Replace single for double quotes
             msg = json.loads(msg)                               # convert string to dictionary
-            rows = len(msg['sensor_name'])
-            msg.update({'time_stamp': [datetime.now()] * rows}) # Insert timestamp
             msg = pd.DataFrame.from_dict(msg)                   # Convert dictionary to data frame
             self.interrupts.add(msg)                            # Add data frame to interrupt queue
             self.process_interrupt()                            # Process interrupt
@@ -53,13 +51,10 @@ class Mosquitto:
         elif 'info' in topic:                                   # If info
             msg = msg.replace("'", "\"")                        # Replace single for double quotes
             msg = json.loads(msg)                               # convert to dictionary
-            rows = len(msg['sensor_name'])
-            msg.update({'time_stamp': [datetime.now()] * rows}) # Insert time stamp
-            msg = pd.DataFrame.from_dict(msg)                   # Convert to data frame
-            self.sensors = self.sensors.append(msg)             # Add to sensors
+            self.sensors = pd.DataFrame.from_dict(msg)          # Convert to data frame and replace sensors
 
         elif 'commands' in topic:                               # If command
-            pass
+            self.commands.execute(msg)
 
     def get_sensors(self):
         """Return sensors data frame"""

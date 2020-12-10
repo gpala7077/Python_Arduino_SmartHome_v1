@@ -1,4 +1,3 @@
-from threading import Thread
 from modules.main_manager import Main
 from modules.thing_manager import MCU
 
@@ -6,7 +5,7 @@ credentials = {
     'username': 'self',
     'password': 'password',
     'database': 'smart_home',
-    'host': '192.168.50.90'}
+    'host': '192.168.50.173'}
 
 
 class Thing_Main(Main):
@@ -53,7 +52,12 @@ class Thing_Main(Main):
     def run(self):
         """Start main loop."""
         super(Thing_Main, self).run()                                                       # Call super class
-        self.commands.execute('status')
+
+        while True:                                                                         # Main tasks for RaspberryPi
+            if 0 not in self.tasks:
+                # self.tasks.update({0: Thread(target=self.get_status)})
+                # self.tasks[0].start()
+                pass
 
 
 if __name__ == '__main__':

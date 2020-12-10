@@ -132,7 +132,7 @@ class Rule:
         Dictionary containing all rule information
 
     commands : tuple
-        A tuple containing 1 or 2 commands of class type Command. (cmd1, cmd2) or (cmd1)
+        A tuple containing 1 or 2 objects of class type Command. (cmd1, cmd2) or (cmd1)
 
     conditions : list of dict
         List of dictionaries defined as {condition_name: condition_value}
@@ -238,7 +238,7 @@ class Command:
     def __repr__(self):
         """Canonical string representation of command."""
 
-        return self.command_name
+        return '{} | {} | {} | {}'.format(self.command_name, self.command_type, self.command_sensor, self.command_value)
 
 
 class Commands:
@@ -278,10 +278,21 @@ class Commands:
     def check_command(self, command):
         """Checks for the type of command, returns command or rule object."""
 
-        if isinstance(command, str):
-            # If passed command is a string then return a Command object
-            command = Command(self.data['commands_data'].query(
-                'command_name == "{}"'.format(command)).to_dict(orient='records')[0])
+        if isinstance(command, dict):
+            # If passed command is a dict then return a Command object
+            command = Command(command)
+
+        elif isinstance(command, str):
+            # If passed command is a string
+
+            if command.isdigit() and self.data['info_level'] < 3:   # If command is a number and less than info level 3
+                command = Command(self.data['commands_data'].query( # Get exact command record ID
+                    'command_record_id == "{}"'.format(command)).to_dict(orient='records')[0])
+            else:
+                command = Command(self.data['commands_data'].query(
+                    'command_name == "{}" and '
+                    'info_id == "{}" and '
+                    'info_level == "{}"'.format(command, self.data['info_id'], self.data['info_level'])).to_dict()[0])
 
         elif isinstance(command, pd.DataFrame):
             # If passed command is a data frame. return a Rule object
@@ -307,10 +318,10 @@ class Commands:
     def execute(self, command):
         """Execute command."""
 
-        command = self.check_command(command)                             # Check type of command
-        print(command)                                                    # Print the canonical string representation
+        command = self.check_command(command)  # Check type of command
+        print(command)  # Print the canonical string representation
 
-        if isinstance(command, Command):                                  # If object is of type Command
+        if isinstance(command, Command):  # If object is of type Command
             # ***************** Raspberry Pi MCU commands *****************
             if command.command_type == 'write':
                 self.r_pi_read_write(command.get_query(), 'write', command.command_value)
@@ -349,17 +360,28 @@ class Commands:
                     channel = self.data['mqtt_data']['broadcast'][num]
                     self.mosquitto.broadcast(channel, command.command_value)
 
+                elif command.command_sensor == 'room':
+                    channel = self.data['mqtt_data']['channels_dict']['room_info']
+                    self.mosquitto.broadcast(channel, str(self.current_status().to_dict(orient='list')))
+
+            # ***************** App commands *****************
+            elif command.command_type == 'app':
+                if command.command_name == 'get_room_status':
+                    channel = self.data['mqtt_data']['channels_dict']['room_commands']
+                    payload = command.command_value
+                    self.mosquitto.broadcast(channel, str(payload))
+
             return 'Command executed successfully'
 
-        elif isinstance(command, Rule) and command.check_conditions(self.current_status()): # If object is of type Rule
-            if command.rule_timer > 0 and command.rule_id in self.timers:         # If timer exists, cancel and replace
+        elif isinstance(command, Rule) and command.check_conditions(self.current_status()):  # If object is of type Rule
+            if command.rule_timer > 0 and command.rule_id in self.timers:  # If timer exists, cancel and replace
                 self.timers[command.rule_id].cancel()
                 self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
                 return self.execute(command.commands[0])
 
-            elif command.rule_timer > 0:                                         # Create new timer
+            elif command.rule_timer > 0:  # Create new timer
                 self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
                 return self.execute(command.commands[0])
 
-            else:                                                               # Execute command1 recursively
+            else:  # Execute command1 recursively
                 return self.execute(command.commands[0])

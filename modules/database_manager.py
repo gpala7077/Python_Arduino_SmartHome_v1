@@ -1,4 +1,6 @@
 import mysql.connector as db
+from mysql.connector import Error
+
 import pandas as pd
 
 
@@ -51,7 +53,6 @@ class Database:
 
             data = pd.DataFrame(self.cursor.fetchall())
             column_names = [col_name[0] for col_name in self.cursor.description]
-
             # Add column names
             data.columns = column_names
             return data
@@ -88,7 +89,7 @@ class Database:
 
         if role == 'emitter':
             listen = channels.query('channel_name == "thing_commands"')['channel_broadcast'].tolist()
-            listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
+            # listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
 
         elif role == 'receiver':
             listen = channels.query('channel_name == "thing_info"')['channel_broadcast'].tolist()
@@ -108,6 +109,7 @@ class Database:
 
         data = {
             'info_id': thing_id,
+            'info_level': 3,
             'room_data': room_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,
@@ -125,12 +127,12 @@ class Database:
         # Get all things associated with that room
         thing_data = self.query(
             'select * from home_things where '
-            'thing_id = (select thing_id from rooms_things where rooms_room_id = %s)', [room_id])
+            'thing_id = (select rooms_thing_id from rooms_things where rooms_room_id = %s)', [room_id])
 
         # Get all pin configurations for room
         sensor_data = self.query(
             'select * from pins_configurations where thing_id = '
-            '(select thing_id from rooms_things where rooms_room_id = %s);', [room_id]
+            '(select rooms_thing_id from rooms_things where rooms_room_id = %s);', [room_id]
         )
 
         # Get all mosquitto channels
@@ -138,7 +140,7 @@ class Database:
         channels = channels.replace('room_name', room_data['room_name'], regex=True)    # prepare channels
         # Prepare listening channels
         listen = channels.query('channel_name == "room_commands"')['channel_broadcast'].tolist()
-        listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
+        # listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
 
         # Create receiving listening channels per each thing
         l1 = channels.query('channel_name=="thing_interrupt"')
@@ -170,6 +172,7 @@ class Database:
 
         data = {
             'info_id': room_id,
+            'info_level': 2,
             'room_data': room_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,
@@ -210,6 +213,7 @@ class Database:
         rules = self.query('select * from rules')
 
         data = {
+            'info_level': 1,
             'room_data': room_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,

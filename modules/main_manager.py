@@ -33,6 +33,7 @@ class Main:
         Database credentials defined as {'username': 'un', 'password': 'pwd', 'database': 'name', 'host': 'IP'}
 
     """
+
     def __init__(self, credentials):
         print('Loading up {}...'.format(self.__class__.__name__))               # Print class name
         self.db = Database(credentials)                                         # Set credentials
@@ -42,6 +43,8 @@ class Main:
         self.commands = Commands()
         self.interrupts = None
         self.status = None
+        self.sensors = None
+        self.tasks = dict()
 
     def initialize(self):
         """Start up program"""

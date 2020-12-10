@@ -58,8 +58,11 @@ class Home(Main):
         for room in self.rooms:                                             # Begin room sub-threads
             Thread(target=self.rooms[room].run).start()
 
-        while True:
-            pass
+        while True:                                         # Main tasks for room
+            if 0 not in self.tasks:
+                # self.tasks.update({0: Thread(target=self.get_status)})
+                # self.tasks[0].start()
+                pass
 
 
 if __name__ == '__main__':
