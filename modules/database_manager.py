@@ -1,6 +1,5 @@
 import mysql.connector as db
 from mysql.connector import Error
-
 import pandas as pd
 
 
@@ -42,7 +41,6 @@ class Database:
 
     def query(self, query, values=None):
         """Query the connecting database. Returns a pandas data frame."""
-
         self.db.commit()  # Ensure all changes are committed before querying.
 
         if 'select' in query:  # If query is select type. return pandas data frame
@@ -58,11 +56,43 @@ class Database:
             return data
 
         elif 'insert' in query:  # If query is insert type. return primary key of the inserted row.
-            self.cursor.execute(query, values)
+            if values is not None:
+                self.cursor.execute(query, values)
+            else:
+                self.cursor.execute(query)
             self.db.commit()
             last_id = self.cursor.getlastrowid()
             print('last id =', last_id)
             return last_id
+
+        elif 'replace' in query or 'delete' in query:
+            if values is not None:
+                self.cursor.execute(query, values)
+            else:
+                self.cursor.execute(query)
+            self.db.commit()
+
+    def replace_data(self, table, data):
+        columns = list(data.to_dict(orient='records')[0].keys())
+        columns = ', '.join(columns)
+
+        sql = 'replace into {} ({}) values '.format(table, columns)
+        values = []
+
+        for row in data.to_dict(orient='records'):
+            val = []
+            for v in list(row.values()):
+                if isinstance(v, int):
+                    val.append(str(v))
+                else:
+                    val.append('"{}"'.format(v))
+
+            val = ', '.join(val)
+            values.append('({})'.format(val))
+
+        sql += ', '.join(values)
+        self.query(sql)
+        return 'Data Updated'
 
     def get_thing_data(self, thing_id, role):
         """Get all necessary thing data"""
