@@ -285,8 +285,8 @@ class Commands:
         elif isinstance(command, str):
             # If passed command is a string
 
-            if command.isdigit() and self.data['info_level'] < 3:   # If command is a number and less than info level 3
-                command = Command(self.data['commands_data'].query( # Get exact command record ID
+            if command.isdigit() and self.data['info_level'] < 3:  # If command is a number and less than info level 3
+                command = Command(self.data['commands_data'].query(  # Get exact command record ID
                     'command_record_id == "{}"'.format(command)).to_dict(orient='records')[0])
             else:
                 command = Command(self.data['commands_data'].query(

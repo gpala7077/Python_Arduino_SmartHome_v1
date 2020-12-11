@@ -166,7 +166,7 @@ class Database:
 
         # Get all mosquitto channels
         channels = self.query('select * from mosquitto_channels')
-        channels = channels.replace('room_name', room_data['room_name'], regex=True)    # prepare channels
+        channels = channels.replace('room_name', room_data['room_name'], regex=True)  # prepare channels
         # Prepare listening channels
         listen = channels.query('channel_name == "room_commands"')['channel_broadcast'].tolist()
         # listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].tolist()

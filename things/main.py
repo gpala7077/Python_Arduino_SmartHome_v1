@@ -29,31 +29,31 @@ class Thing_Main(Main):
     """
 
     def __init__(self, credentials, thing_id):
-        super().__init__(credentials)                                                       # Call super class
-        self.data = self.db.get_thing_data(thing_id=thing_id, role='emitter')               # Get thing data
-        self.r_pi = MCU(self.data)                                                          # Initialize raspberry pi
+        super().__init__(credentials)  # Call super class
+        self.data = self.db.get_thing_data(thing_id=thing_id, role='emitter')  # Get thing data
+        self.r_pi = MCU(self.data)  # Initialize raspberry pi
 
     def initialize(self):
         """Initialize Raspberry pi"""
-        super(Thing_Main, self).initialize()                                               # Call super class
-        self.commands.r_pi_read_write = self.r_pi.read_write                               # Pass read/write to commands
-        self.interrupts = self.r_pi.interrupts                                             # Pass interrupts to main
-        self.r_pi.process_interrupt = self.process_interrupt                               # Pass function to RPI
-        print(self.r_pi.start())                                                           # Start up the RPI
+        super(Thing_Main, self).initialize()  # Call super class
+        self.commands.r_pi_read_write = self.r_pi.read_write  # Pass read/write to commands
+        self.interrupts = self.r_pi.interrupts  # Pass interrupts to main
+        self.r_pi.process_interrupt = self.process_interrupt  # Pass function to RPI
+        print(self.r_pi.start())  # Start up the RPI
 
     def process_interrupt(self):
         """Process active interrupt."""
-        print('Processing Interrupt for {}'.__class__.__name__)                            # Call super class
-        payload = self.interrupts.get()                                                    # Prepare payload
+        print('Processing Interrupt for {}'.__class__.__name__)  # Call super class
+        payload = self.interrupts.get()  # Prepare payload
         channels = self.data['mqtt_data']['channels'].query('channel_name == "thing_interrupt"')[
-            'channel_broadcast'].tolist()                                                  # Prepare channel
-        self.mosquitto.broadcast(channels, payload)                                        # Broadcast interrupt
+            'channel_broadcast'].tolist()  # Prepare channel
+        self.mosquitto.broadcast(channels, payload)  # Broadcast interrupt
 
     def run(self):
         """Start main loop."""
-        super(Thing_Main, self).run()                                                       # Call super class
+        super(Thing_Main, self).run()  # Call super class
 
-        while True:                                                                         # Main tasks for RaspberryPi
+        while True:  # Main tasks for RaspberryPi
             if 0 not in self.tasks:
                 # self.tasks.update({0: Thread(target=self.get_status)})
                 # self.tasks[0].start()

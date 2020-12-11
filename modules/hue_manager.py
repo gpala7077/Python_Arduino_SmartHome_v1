@@ -16,11 +16,12 @@ class HueAPI:
         Json object containing all the data in Phillips hue
 
     """
+
     def __init__(self, ip_address, user):
-        self.ip_address = ip_address                    # Set phillips ip address
-        self.user = user                                # Set user
-        self.data = None                                # Initialize empty data
-        self.load()                                     # Load all data
+        self.ip_address = ip_address  # Set phillips ip address
+        self.user = user  # Set user
+        self.data = None  # Initialize empty data
+        self.load()  # Load all data
 
     def load(self):
         url = 'http://{}/api/{}'.format(self.ip_address, self.user)
@@ -86,5 +87,3 @@ class HueAPI:
         url = 'http://{}/api/{}/groups/'.format(self.ip_address, self.user)
         response = requests.post(url=url, data=group_command).json()
         return response
-
-

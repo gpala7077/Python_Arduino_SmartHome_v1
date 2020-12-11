@@ -35,8 +35,8 @@ class Main:
     """
 
     def __init__(self, credentials):
-        print('Loading up {}...'.format(self.__class__.__name__))               # Print class name
-        self.db = Database(credentials)                                         # Set credentials
+        print('Loading up {}...'.format(self.__class__.__name__))  # Print class name
+        self.db = Database(credentials)  # Set credentials
         self.third_party = dict()
         self.data = None
         self.mosquitto = Mosquitto()
@@ -49,12 +49,12 @@ class Main:
     def initialize(self):
         """Start up program"""
         print('Initializing {}'.format(self.__class__.__name__))
-        self.mosquitto.host_ip = self.data['mqtt_data']['configuration']['mqtt_value']    # Get broker ip address
-        self.commands.data = self.data                                                    # commands data
-        self.commands.mosquitto = self.mosquitto                                          # Give command access to MQTT
-        self.mosquitto.commands = self.commands                                           # Give MQTT access to commands
-        print(self.mosquitto.connect())                                                   # Log info
-        print(self.mosquitto.listen(self.data['mqtt_data']['listen']))                    # Log info
+        self.mosquitto.host_ip = self.data['mqtt_data']['configuration']['mqtt_value']  # Get broker ip address
+        self.commands.data = self.data  # commands data
+        self.commands.mosquitto = self.mosquitto  # Give command access to MQTT
+        self.mosquitto.commands = self.commands  # Give MQTT access to commands
+        print(self.mosquitto.connect())  # Log info
+        print(self.mosquitto.listen(self.data['mqtt_data']['listen']))  # Log info
 
     def run(self):
         """Start main loop"""
