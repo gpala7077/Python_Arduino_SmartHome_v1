@@ -1,5 +1,4 @@
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QDialogButtonBox, QVBoxLayout, QWidget, QPushButton, QToolBar
+from PySide2.QtWidgets import QDialogButtonBox, QVBoxLayout, QWidget, QToolBar
 
 
 class Window(QWidget):
@@ -42,4 +41,3 @@ class Window(QWidget):
         close_screen = self.__class__.__name__
         if open_screen is not None:
             self.show_screen(open_screen, close_screen)
-

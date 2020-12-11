@@ -1,12 +1,12 @@
 import time
 from functools import partial
-import pandas as pd
-from app.SmartHome.modules.database import Pandas
 
+import pandas as pd
 from PySide2.QtCore import QThread
 from PySide2.QtWidgets import QGridLayout, QLabel, QPushButton, QComboBox, QLineEdit, QTableView
 
 from app.SmartHome.modules.base import Window
+from app.SmartHome.modules.database import Pandas
 from modules.commands_manager import Commands
 from modules.mosquitto_manager import Mosquitto
 
@@ -54,7 +54,7 @@ class Main_Menu(Window):
 class Smart_Home(Window):
     def __init__(self, window_title):
         super(Smart_Home, self).__init__(window_title)
-        self.buttons = {button: QPushButton(button) for button in ('Rooms', 'History')}
+        self.buttons = {button: QPushButton(button) for button in ('Rooms',)}
 
     def load_window(self):
         super(Smart_Home, self).load_window()
@@ -107,13 +107,14 @@ class DynamicLabel(QThread):
         self.wait()
 
     def run(self):
-        while True:
+        for i in range(5):
             status = self.status()
             if not status.empty:
                 self.label = Pandas(status)
                 self.table.setModel(self.label)
-                time.sleep(1)
                 return 'Status Captured'
+            time.sleep(1)
+        return 'Timeout...'
 
 
 class Room(Window):
@@ -126,7 +127,7 @@ class Room(Window):
         self.table = QTableView()
         self.command = None
         self.threads = {}
-        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])           # Create empty data frame
+        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])  # Create empty data frame
         self.current_status = Pandas(df)
         self.execute_command = QPushButton('Execute')
         self.available_commands = QComboBox()
@@ -141,13 +142,9 @@ class Room(Window):
         print(self.mosquitto.connect())  # Log info
         print(self.mosquitto.listen(self.data['mqtt_data']['channels_dict']['room_info']))  # Log info
 
-    def load_threads(self):
-        self.threads.update({0: DynamicLabel(self.current_status, self.table, self.mosquitto.get_sensors)})
-
     def load_window(self):
         super(Room, self).load_window()
         self.connect_to_room()
-        self.load_threads()
 
         for command in self.data['commands_data'].query('command_type == "app"')['command_name'].tolist():
             self.available_commands.addItem(command)
@@ -159,13 +156,20 @@ class Room(Window):
         super(Room, self).connect_widgets()
         self.table.setModel(self.current_status)
 
-        self.execute_command.clicked.connect(lambda: self.commands.execute(self.command))
+        self.execute_command.clicked.connect(lambda: self.check_command(self.command))
         self.execute_command.released.connect(self.update_status)
         self.available_commands.currentTextChanged.connect(self.update_command)
 
     def update_status(self):
         self.threads.update({0: DynamicLabel(self.current_status, self.table, self.mosquitto.get_sensors)})
         self.threads[0].start()
+
+    def check_command(self, command):
+        if command is not None:
+            self.commands.execute(self.command)
+        else:
+            self.update_command()
+            self.commands.execute(self.command)
 
     def update_command(self):
         self.command = self.data['commands_data'].query(

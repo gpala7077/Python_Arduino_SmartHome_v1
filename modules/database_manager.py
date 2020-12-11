@@ -1,5 +1,4 @@
 import mysql.connector as db
-from mysql.connector import Error
 import pandas as pd
 
 

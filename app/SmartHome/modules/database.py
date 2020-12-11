@@ -1,9 +1,11 @@
 from datetime import datetime
 from functools import partial
+
 import pandas as pd
-from PySide2.QtCore import QAbstractTableModel, Qt, QAbstractItemModel
+from PySide2.QtCore import QAbstractTableModel, Qt
+from PySide2.QtWidgets import QPushButton, QComboBox, QTableView
+
 from app.SmartHome.modules.base import Window
-from PySide2.QtWidgets import QGridLayout, QLabel, QPushButton, QComboBox, QLineEdit, QTableView, QVBoxLayout
 
 
 class Pandas(QAbstractTableModel):
@@ -153,7 +155,7 @@ class Manage_Rooms(Manage_Table):
     def new_data(self):
         data = self.data.df.to_dict(orient='records')
         new_row = self.data.df.to_dict(orient='records')[-1]
-        new_row.update({'room_id': int(new_row['room_id'])+1})
+        new_row.update({'room_id': int(new_row['room_id']) + 1})
         new_row.update({'room_name': 'New Room'})
         new_row.update({'room_description': 'New Description'})
         data.append(new_row)
@@ -191,7 +193,7 @@ class Manage_Things(Manage_Table):
     def new_data(self):
         data = self.data.df.to_dict(orient='records')
         new_row = self.data.df.to_dict(orient='records')[-1]
-        new_row.update({'thing_id': int(new_row['thing_id'])+1})
+        new_row.update({'thing_id': int(new_row['thing_id']) + 1})
         new_row.update({'thing_name': 'New Thing'})
         new_row.update({'thing_description': 'New Description'})
         data.append(new_row)
@@ -229,7 +231,7 @@ class Manage_Commands(Manage_Table):
     def new_data(self):
         data = self.data.df.to_dict(orient='records')
         new_row = self.data.df.to_dict(orient='records')[-1]
-        new_row.update({'command_record_id': int(new_row['command_record_id'])+1})
+        new_row.update({'command_record_id': int(new_row['command_record_id']) + 1})
         new_row.update({'info_level': 'New Command'})
         new_row.update({'info_id': 'New Command'})
         new_row.update({'command_type': 'New Command'})
@@ -242,4 +244,3 @@ class Manage_Commands(Manage_Table):
         self.data = Pandas(pd.DataFrame(data))
         self.table.setModel(self.data)
         self.load_combo_box()
-

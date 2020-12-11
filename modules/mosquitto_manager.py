@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 from threading import Thread
 
 import paho.mqtt.client as mqtt
