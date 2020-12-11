@@ -51,7 +51,7 @@ class Database:
 
             data = pd.DataFrame(self.cursor.fetchall())
             column_names = [col_name[0] for col_name in self.cursor.description]
-            # Add column names
+
             data.columns = column_names
             return data
 
@@ -150,7 +150,7 @@ class Database:
 
     def get_room_data(self, room_id):
         """Get all necessary room data"""
-
+        print(room_id)
         # get room data
         room_data = self.query('select * from home_rooms where room_id = %s', [room_id]).to_dict(orient='records')[0]
 

@@ -1,10 +1,9 @@
-import site
 import sys
 
 import pandas as pd
 from PySide2.QtWidgets import QApplication
 from mysql.connector import Error
-from app.SmartHome.modules.database import Db_Management, Manage_Rooms
+from app.SmartHome.modules.database import Database_Management, Manage_Rooms, Manage_Things, Manage_Commands
 from app.SmartHome.modules.smart_home import Login, Main_Menu, Smart_Home, Rooms, Room
 from modules.database_manager import Database
 
@@ -26,8 +25,10 @@ class Navigator:
         self.screens = {'Main_Menu': Main_Menu('Main Menu'),
                         'Smart_Home': Smart_Home('Smart Home'),
                         'Rooms': Rooms('Available Rooms', self.db),
-                        'Db_Management': Db_Management('SmartHome Database Management'),
-                        'Manage_Rooms': Manage_Rooms('Manage Rooms', self.db)
+                        'Database_Management': Database_Management('SmartHome Database Management'),
+                        'Manage_Rooms': Manage_Rooms('Manage Rooms', self.db),
+                        'Manage_Things': Manage_Things('Manage Things', self.db),
+                        'Manage_Commands': Manage_Commands('Manage Commands', self.db)
                         }
         self.start()
 
@@ -37,10 +38,11 @@ class Navigator:
             self.screens[screen].start()
 
     def show_screen(self, open_screen, close_screen=None):
-
-        if close_screen is not None:
+        if close_screen is not None and not isinstance(open_screen, pd.DataFrame):
+            open_screen = open_screen.replace(' ', '_')
             close_screen = close_screen.replace(' ', '_')
             self.screens[close_screen].close()
+            self.screens[open_screen].previous_screen = close_screen
 
         if isinstance(open_screen, str):
             print('\nOpening : {}\nClosing : {}\n'.format(open_screen, close_screen))
@@ -48,6 +50,7 @@ class Navigator:
             self.screens[open_screen].show()
 
         elif isinstance(open_screen, pd.DataFrame):
+            close_screen = close_screen.replace(' ', '_')
             data = open_screen
             data_dict = data.to_dict(orient='records')[0]
             print('\nOpening : {}\nClosing : {}\n'.format(data_dict, close_screen))
@@ -55,6 +58,9 @@ class Navigator:
             if any("room" in key for key in list(data_dict.keys())):
                 print('Opening {room_name} identified as {room_id}'.format(**data_dict))
                 self.screens.update({'Room': Room(data_dict['room_name'], data_dict['room_id'], self.db)})
+                self.screens[close_screen].close()
+                self.screens['Room'].previous_screen = close_screen
+                self.screens['Room'].show_screen = self.show_screen
                 self.screens['Room'].start()
                 self.screens['Room'].show()
 

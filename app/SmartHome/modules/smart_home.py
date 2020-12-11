@@ -1,7 +1,10 @@
+import time
 from functools import partial
+import pandas as pd
+from app.SmartHome.modules.database import Pandas
 
 from PySide2.QtCore import QThread
-from PySide2.QtWidgets import QGridLayout, QLabel, QPushButton, QComboBox, QLineEdit
+from PySide2.QtWidgets import QGridLayout, QLabel, QPushButton, QComboBox, QLineEdit, QTableView
 
 from app.SmartHome.modules.base import Window
 from modules.commands_manager import Commands
@@ -34,37 +37,35 @@ class Login(Window):
 class Main_Menu(Window):
     def __init__(self, window_title):
         super(Main_Menu, self).__init__(window_title)
-        self.smart_home = QPushButton('Smart Home')
-        self.db_management = QPushButton('Database Management')
+        self.buttons = {button: QPushButton(button) for button in ('Smart Home', 'Database Management')}
 
     def load_window(self):
         super(Main_Menu, self).load_window()
-        self.layout.addWidget(self.smart_home)
-        self.layout.addWidget(self.db_management)
+        for button in self.buttons:
+            self.layout.addWidget(self.buttons[button])
 
     def connect_widgets(self):
         super(Main_Menu, self).connect_widgets()
         close_screen = self.__class__.__name__
-        self.smart_home.clicked.connect((lambda: self.show_screen('Smart_Home', close_screen)))
-        self.db_management.clicked.connect((lambda: self.show_screen('Db_Management', close_screen)))
+        for button in self.buttons:
+            self.buttons[button].clicked.connect(partial(self.show_screen, button, close_screen))
 
 
 class Smart_Home(Window):
     def __init__(self, window_title):
         super(Smart_Home, self).__init__(window_title)
-        self.rooms = QPushButton('Rooms')
-        self.history = QPushButton('History')
+        self.buttons = {button: QPushButton(button) for button in ('Rooms', 'History')}
 
     def load_window(self):
         super(Smart_Home, self).load_window()
-        self.layout.addWidget(self.rooms)
-        self.layout.addWidget(self.history)
+        for button in self.buttons:
+            self.layout.addWidget(self.buttons[button])
 
     def connect_widgets(self):
         super(Smart_Home, self).connect_widgets()
         close_screen = self.__class__.__name__
-        self.rooms.clicked.connect(lambda: self.show_screen('Rooms', close_screen))
-        self.history.clicked.connect(lambda: self.show_screen('History', close_screen))
+        for button in self.buttons:
+            self.buttons[button].clicked.connect(partial(self.show_screen, button, close_screen))
 
 
 class Rooms(Window):
@@ -91,15 +92,15 @@ class Rooms(Window):
         for i in range(n):  # Iterate through each element
             data = self.data[i:i + 1]
             current_row = data.to_dict(orient='records')[0]  # Look at current row
-            self.rooms[current_row['room_id']].clicked.connect(partial(
-                self.show_screen, data, close_screen))
+            self.rooms[current_row['room_id']].clicked.connect(partial(self.show_screen, data, close_screen))
 
 
 class DynamicLabel(QThread):
 
-    def __init__(self, label, status):
+    def __init__(self, label, table, status):
         QThread.__init__(self)
         self.label = label
+        self.table = table
         self.status = status
 
     def __del__(self):
@@ -108,13 +109,11 @@ class DynamicLabel(QThread):
     def run(self):
         while True:
             status = self.status()
-            msg = ''
             if not status.empty:
-                status = status.to_dict(orient='records')
-                for record in status:
-                    msg += '{sensor_name:20} {sensor_type:20} {sensor_value}\n'.format(**record)
-                if self.label.text() != msg:
-                    self.label.setText(msg)
+                self.label = Pandas(status)
+                self.table.setModel(self.label)
+                time.sleep(1)
+                return 'Status Captured'
 
 
 class Room(Window):
@@ -124,11 +123,11 @@ class Room(Window):
         self.data = self.db.get_room_data(room_id)
         self.mosquitto = Mosquitto()
         self.commands = Commands()
-
+        self.table = QTableView()
         self.command = None
         self.threads = {}
-
-        self.current_status = QLabel('Status')
+        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])           # Create empty data frame
+        self.current_status = Pandas(df)
         self.execute_command = QPushButton('Execute')
         self.available_commands = QComboBox()
         self.name = QLabel(self.data['room_data']['room_name'])
@@ -143,7 +142,7 @@ class Room(Window):
         print(self.mosquitto.listen(self.data['mqtt_data']['channels_dict']['room_info']))  # Log info
 
     def load_threads(self):
-        self.threads.update({0: DynamicLabel(self.current_status, self.mosquitto.get_sensors)})
+        self.threads.update({0: DynamicLabel(self.current_status, self.table, self.mosquitto.get_sensors)})
 
     def load_window(self):
         super(Room, self).load_window()
@@ -152,18 +151,21 @@ class Room(Window):
 
         for command in self.data['commands_data'].query('command_type == "app"')['command_name'].tolist():
             self.available_commands.addItem(command)
-
-        self.layout.addWidget(self.current_status)
+        self.layout.addWidget(self.table)
         self.layout.addWidget(self.execute_command)
         self.layout.addWidget(self.available_commands)
 
     def connect_widgets(self):
         super(Room, self).connect_widgets()
-        for thread in self.threads:
-            self.threads[thread].start()
+        self.table.setModel(self.current_status)
 
         self.execute_command.clicked.connect(lambda: self.commands.execute(self.command))
+        self.execute_command.released.connect(self.update_status)
         self.available_commands.currentTextChanged.connect(self.update_command)
+
+    def update_status(self):
+        self.threads.update({0: DynamicLabel(self.current_status, self.table, self.mosquitto.get_sensors)})
+        self.threads[0].start()
 
     def update_command(self):
         self.command = self.data['commands_data'].query(

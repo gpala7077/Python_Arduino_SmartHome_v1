@@ -54,93 +54,192 @@ class Pandas(QAbstractTableModel):
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
 
 
-class Db_Management(Window):
+class Database_Management(Window):
     def __init__(self, window_title):
-        super(Db_Management, self).__init__(window_title)
-        self.menu = {task: QPushButton(task) for task in ('Manage Rooms',)}
+        super(Database_Management, self).__init__(window_title)
+        self.menu = {task: QPushButton(task) for task in ('Manage Rooms', 'Manage Things', 'Manage Commands')}
 
     def load_window(self):
-        super(Db_Management, self).load_window()
+        super(Database_Management, self).load_window()
 
         for task in self.menu:
             self.layout.addWidget(self.menu[task])
 
     def connect_widgets(self):
-        super(Db_Management, self).connect_widgets()
+        super(Database_Management, self).connect_widgets()
         close_screen = self.__class__.__name__
         for task in self.menu:
             self.menu[task].clicked.connect(partial(self.show_screen, task, close_screen))
 
 
-class Manage_Rooms(Window):
+class Manage_Table(Window):
     def __init__(self, window_title, db):
-        super(Manage_Rooms, self).__init__(window_title)
+        super(Manage_Table, self).__init__(window_title)
         self.db = db
-        self.rooms = Pandas(self.db.query('select * from home_rooms'))
         self.table = QTableView()
         self.combobox = QComboBox()
         self.delete = self.combobox.currentText()
-        self.buttons = {button: QPushButton(button) for button in ('New Room', 'Save Changes', 'Delete Room')}
+        self.buttons = {button: QPushButton(button) for button in ('New', 'Save', 'Delete')}
+        self.data = None
 
     def load_window(self):
-        super(Manage_Rooms, self).load_window()
-        for selection in self.rooms.df['room_name'].tolist():
-            self.combobox.addItem(selection)
+        super(Manage_Table, self).load_window()
+        self.load_combo_box()
 
         for button in self.buttons:
-            if button != 'Delete Room':
+            if button != 'Delete':
                 self.layout.addWidget(self.buttons[button])
 
         self.layout.addWidget(self.table)
-        self.layout.addWidget(self.buttons['Delete Room'])
+        self.layout.addWidget(self.buttons['Delete'])
         self.layout.addWidget(self.combobox)
 
     def connect_widgets(self):
-        super(Manage_Rooms, self).connect_widgets()
-        self.table.setModel(self.rooms)
+        super(Manage_Table, self).connect_widgets()
+        self.table.setModel(self.data)
 
         for button in self.buttons:
-            if button == 'New Room':
-                self.buttons[button].clicked.connect(self.new_room)
-            elif button == 'Save Changes':
+            if button == 'New':
+                self.buttons[button].clicked.connect(self.new_data)
+            elif button == 'Save':
                 self.buttons[button].clicked.connect(self.save_new_data)
-            elif button == 'Delete Room':
+            elif button == 'Delete':
                 self.buttons[button].clicked.connect(self.delete_data)
         self.combobox.currentTextChanged.connect(self.delete_row)
 
     def delete_row(self):
         self.delete = self.combobox.currentText()
 
-    def delete_data(self):
-        room_id = self.rooms.df.query('room_name =="{}"'.format(self.delete))['room_id'].tolist()[0]
-        self.db.query('delete from home_rooms where room_id = %s', [room_id])
-        self.delete_combo_box()
-        self.rooms = Pandas(self.db.query('select * from home_rooms'))
-        self.table.setModel(self.rooms)
-        self.reload_combo_box()
+    def delete_combo_box(self):
+        pass
+
+    def load_combo_box(self):
+        pass
 
     def save_new_data(self):
-        print(self.db.replace_data('home_rooms', self.rooms.df))
+        pass
 
-    def new_room(self):
-        data = self.rooms.df.to_dict(orient='records')
-        new_row = self.rooms.df.to_dict(orient='records')[-1]
+    def delete_data(self):
+        pass
+
+    def new_data(self):
+        pass
+
+
+class Manage_Rooms(Manage_Table):
+    def __init__(self, window_title, db):
+        super(Manage_Rooms, self).__init__(window_title, db)
+        self.data = Pandas(self.db.query('select * from home_rooms'))
+
+    def delete_combo_box(self):
+        for i in range(len(self.data.df['room_name'].tolist())):
+            self.combobox.removeItem(i)
+
+    def load_combo_box(self):
+        for selection in self.data.df['room_name'].tolist():
+            self.combobox.addItem(selection)
+
+    def save_new_data(self):
+        print(self.db.replace_data('home_rooms', self.data.df))
+
+    def delete_data(self):
+        room_id = self.data.df.query('room_name =="{}"'.format(self.delete))['room_id'].tolist()[0]
+        self.db.query('delete from home_rooms where room_id = %s', [room_id])
+        self.delete_combo_box()
+        self.data = Pandas(self.db.query('select * from home_rooms'))
+        self.table.setModel(self.data)
+        self.load_combo_box()
+
+    def new_data(self):
+        data = self.data.df.to_dict(orient='records')
+        new_row = self.data.df.to_dict(orient='records')[-1]
         new_row.update({'room_id': int(new_row['room_id'])+1})
         new_row.update({'room_name': 'New Room'})
         new_row.update({'room_description': 'New Description'})
         data.append(new_row)
 
         self.delete_combo_box()
-        self.rooms = Pandas(pd.DataFrame(data))
-        self.table.setModel(self.rooms)
-        self.reload_combo_box()
+        self.data = Pandas(pd.DataFrame(data))
+        self.table.setModel(self.data)
+        self.load_combo_box()
+
+
+class Manage_Things(Manage_Table):
+    def __init__(self, window_title, db):
+        super(Manage_Things, self).__init__(window_title, db)
+        self.data = Pandas(self.db.query('select * from home_things'))
 
     def delete_combo_box(self):
-        for i in range(len(self.rooms.df['room_name'].tolist())):
+        for i in range(len(self.data.df['thing_name'].tolist())):
             self.combobox.removeItem(i)
 
-    def reload_combo_box(self):
-
-        for selection in self.rooms.df['room_name'].tolist():
+    def load_combo_box(self):
+        for selection in self.data.df['thing_name'].tolist():
             self.combobox.addItem(selection)
+
+    def save_new_data(self):
+        print(self.db.replace_data('home_things', self.data.df))
+
+    def delete_data(self):
+        room_id = self.data.df.query('thing_name =="{}"'.format(self.delete))['thing_id'].tolist()[0]
+        self.db.query('delete from home_things where thing_id = %s', [room_id])
+        self.delete_combo_box()
+        self.data = Pandas(self.db.query('select * from home_things'))
+        self.table.setModel(self.data)
+        self.load_combo_box()
+
+    def new_data(self):
+        data = self.data.df.to_dict(orient='records')
+        new_row = self.data.df.to_dict(orient='records')[-1]
+        new_row.update({'thing_id': int(new_row['thing_id'])+1})
+        new_row.update({'thing_name': 'New Thing'})
+        new_row.update({'thing_description': 'New Description'})
+        data.append(new_row)
+
+        self.delete_combo_box()
+        self.data = Pandas(pd.DataFrame(data))
+        self.table.setModel(self.data)
+        self.load_combo_box()
+
+
+class Manage_Commands(Manage_Table):
+    def __init__(self, window_title, db):
+        super(Manage_Commands, self).__init__(window_title, db)
+        self.data = Pandas(self.db.query('select * from commands'))
+
+    def delete_combo_box(self):
+        for i in range(len(self.data.df['command_record_id'].tolist())):
+            self.combobox.removeItem(i)
+
+    def load_combo_box(self):
+        for selection in self.data.df['command_record_id'].tolist():
+            self.combobox.addItem(str(selection))
+
+    def save_new_data(self):
+        print(self.db.replace_data('commands', self.data.df))
+
+    def delete_data(self):
+        room_id = self.data.df.query('command_record_id =="{}"'.format(self.delete))['command_record_id'].tolist()[0]
+        self.db.query('delete from home_things where thing_id = %s', [room_id])
+        self.delete_combo_box()
+        self.data = Pandas(self.db.query('select * from home_things'))
+        self.table.setModel(self.data)
+        self.load_combo_box()
+
+    def new_data(self):
+        data = self.data.df.to_dict(orient='records')
+        new_row = self.data.df.to_dict(orient='records')[-1]
+        new_row.update({'command_record_id': int(new_row['command_record_id'])+1})
+        new_row.update({'info_level': 'New Command'})
+        new_row.update({'info_id': 'New Command'})
+        new_row.update({'command_type': 'New Command'})
+        new_row.update({'command_sensor': 'New Command'})
+        new_row.update({'command_name': 'New Command'})
+        new_row.update({'command_value': 'New Value'})
+        data.append(new_row)
+
+        self.delete_combo_box()
+        self.data = Pandas(pd.DataFrame(data))
+        self.table.setModel(self.data)
+        self.load_combo_box()
 
