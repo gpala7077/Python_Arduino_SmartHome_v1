@@ -204,3 +204,4 @@ class Manage_Commands(Manage_Table):
 
         self.data = Pandas(pd.DataFrame(data))
         self.table.setModel(self.data)
+
