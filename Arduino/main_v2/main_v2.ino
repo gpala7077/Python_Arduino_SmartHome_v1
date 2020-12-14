@@ -23,7 +23,7 @@
           //      2) home/rooms/Kitchen/things/Kitchen_Thing1/info
           //      3) home/rooms/Kitchen/things/Kitchen_Thing1/interrupt
           
-// 5: Publish thing status when interrupts are triggered to channel 2 (info)                  * INCOMPLETE *                                                                                    
+// 5: Publish thing status when interrupts are triggered to channel 3 (interrupt)            * INCOMPLETE *
           //     i.e. payload = "
           //                  "{
           //                    "sensor_name" :   ["motion1", "LDR1"],
