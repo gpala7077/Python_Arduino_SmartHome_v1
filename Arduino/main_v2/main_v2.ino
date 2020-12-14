@@ -1,46 +1,3 @@
-// How this code SHOULD work.
-
-// Steps:
-
-// 1: Start AutoConnect in order to configure start up variables                              * COMPLETE *
-          //  (i.e. WiFi SSID | Pass  AND Database credentials.) 
-
-// 2: Connect to MariaDB and get setup information                                            * INCOMPLETE *
-          //  (i.e. mosquitto broker ip, pin assignments, mosquitto channels, commands) 
-
-// 3: Connect to Mosquitto Broker                                                             * COMPLETE *                                                                                    
-
-// 4: Listen to appropriately formatted mosquitto channels                                    * INCOMPLETE *                                                                                    
-          
-          //     i.e. channels are given as...
-          //      1) home/rooms/room_name/things/thing_name/commands
-          //      2) home/rooms/room_name/things/thing_name/info
-          //      3) home/rooms/room_name/things/thing_name/interrupt
-
-          //    Need to be formatted as (replace room_name and thing_name)
-          //     i.e. channels are formatted correctly when...
-          //      1) home/rooms/Kitchen/things/Kitchen_Thing1/commands
-          //      2) home/rooms/Kitchen/things/Kitchen_Thing1/info
-          //      3) home/rooms/Kitchen/things/Kitchen_Thing1/interrupt
-          
-// 5: Publish thing status when interrupts are triggered to channel 3 (interrupt)            * INCOMPLETE *
-          //     i.e. payload = "
-          //                  "{
-          //                    "sensor_name" :   ["motion1", "LDR1"],
-          //                    "sensor_type" :   ["motion", "LDR"],
-          //                    "sensor_value":   [1, 2423]
-          //                   "}
-
-
-// 6: Perform commands given from MariaDB (step 2) and sent to channel 1 (Step 2 - commands)  * INCOMPLETE * 
-                                                                                    
-          //     i.e. payload = "read_status"
-          //     i.e. payload = "relay_on"
-          //     i.e. payload = "relay_off"
-
-          
-
-
 #if defined(ARDUINO_ARCH_ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
@@ -63,12 +20,17 @@ typedef WebServer WiFiWebServer;
 
 ESP8266WebServer server;
 AutoConnect portal(server);
-AutoConnectConfig config;
 AutoConnectAux Input;
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 
-// ******************************************** AutoConnect Functions ************************************************//
+String username;
+String password;
+String host_up;
+String database;
+#define ADC A0 //Light Sensor
+#define D14 13 //Motion Sensor
+// ************************************************** Input Page *******************************************************
 
 const static char InputPage[] PROGMEM = R"r(
 {
@@ -79,22 +41,22 @@ const static char InputPage[] PROGMEM = R"r(
     { 
       "name": "username", 
       "type": "ACInput", 
-      "value": "Enter username" 
+      "value": "Enter Username"
     },
     { 
       "name": "password", 
       "type": "ACInput",
-      "apply": "password", 
+      "apply": "password"
     },
     { 
       "name": "host_ip", 
       "type": "ACInput", 
-      "value": "Database Host IP Address" 
+      "value": "Host IP Address"
     },
     { 
       "name": "database", 
       "type": "ACInput", 
-      "value": "Database Name" },
+      "value": "Database name" },
     {
       "name": "save",
       "type": "ACSubmit",
@@ -105,78 +67,7 @@ const static char InputPage[] PROGMEM = R"r(
 }
 )r";
 
-// An on-page handler for '/' access
-void onRoot() {
-    String  content =                                // Define root page
-        "<html>"
-            "<head>"
-                "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-            "</head>"
-
-            "<body>"
-                "<div>"
-                    "Username: {{value1}} | <br>"
-                    "Password: {{value2}} | <br>"
-                    "Maria IP: {{value3}} | <br>"
-                    "Database: {{value4}} |"
-                "</div>"
-            "</body>"
-
-        "</html>";
-
-  Input.fetchElement();                               // Get saved variables
-
-  String value1 = Input["username"].value;            // Test print variables
-  String value2 = Input["password"].value;
-  String value3 = Input["host_ip"].value;
-  String value4 = Input["database"].value;
-  content.replace("{{value1}}", value1);              // Format root page
-  content.replace("{{value2}}", value2);
-  content.replace("{{value3}}", value3);
-  content.replace("{{value4}}", value4);
-  server.send(200, "text/html", content);
-}
-// ********************************************** Sensor Functions ***************************************************//
-
-int Motion(){
-    // Read Motion sensor value and return as char
-  int motionsense_int;                                // Declare integer motionsense_int
-  String motionsense_str;                             // Declare string motionsense_str
-  char motion[2];                                     // Declare a char array
-  
-  motionsense_int = digitalRead(13);                  // Read motion sensor value as int
-  motionsense_str = String(motionsense_int);          // Convert int to String
-  motionsense_str.toCharArray(motion, 2);             // Convert String to Char
-
-  Serial.print(motion);                               // Print motion value to serial
-    
-// return motion                                      // Return motion as char.
-                                                      // I get an error here... invalid conversion from char to int...
-}
-
-int Light(){
-    // Read LDR sensor value and return as char
-
-  int pVolt = analogRead(A0);                         // Read Light sensor value as int
-  String volt_str = String(pVolt);                    // Convert int to String
-  int volt_len = volt_str.length() + 1;               // Get length of string plus one
-  char volt[volt_len];                                // Create char buffer
-  volt_str.toCharArray(volt, volt_len);               // Covert String to char
-  Serial.print(volt);
-  
-  // return volt                                       // Return volt as char
-                                                       // I get an error here... invalid conversion from char to int...
-  }
-// ********************************************* Mosquitto Functions *************************************************//
-
-void mqttPublish(String msg, String path) {
-    // Mosquitto broadcast wrapper function
-  Serial.print("Sending ");                           // Inform Serial mqtt is about to send
-  Serial.println(msg);                                // Print message to serial
-  Serial.print(" to...");
-  Serial.println(path);                               // Print channel to serial
-  mqttClient.publish(path.c_str(), msg.c_str());      // Publish payload to topic
-}
+// ********************************************* Mosquitto Connect *****************************************************
 
 bool mqttConnect() {
     // Connect to Mosquitto broker if not connect. Returns True if Connected. False if not.
@@ -215,24 +106,83 @@ bool mqttConnect() {
   return false;
 }
 
-void reconnect() {
-    // Connect/ Reconnect to Mosquitto Broker.
+// ************************************************** Root Page ********************************************************
 
-    Serial.print("Attempting MQTT connection...");
-    String clientId = "ESP8266Client-";                // Create a random client ID
-    clientId += String(random(0xffff), HEX);
-    if (mqttClient.connect(clientId.c_str())) {        // Attempt to connect
-      Serial.println("connected");
-      mqttPublish("hello world", "channels");          // Once connected, publish an announcement...
-      mqttClient.subscribe("commands");                // Resubscribe to commands channel
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
+void onRoot() {
+// An on-page handler for '/' access
+
+  String  content =
+  "<html>"
+  "<head><meta name='viewport' content='width=device-width, initial-scale=1'></head>"
+  "<body><div>Username: {{value1}}<br>Password: {{value2}}<br>Host IP: {{value3}}<br>Database: {{value4}}</div></body>"
+  "</html>";
+        
+
+  Input.fetchElement();                               // Get saved variables
+
+  String value1 = Input["username"].value;            // Test print variables
+  String value2 = Input["password"].value;
+  String value3 = Input["host_ip"].value;
+  String value4 = Input["database"].value;
+  content.replace("{{value1}}", value1);              // Format root page
+  content.replace("{{value2}}", value2);
+  content.replace("{{value3}}", value3);
+  content.replace("{{value4}}", value4);
+  server.send(200, "text/html", content);
 }
+
+// ************************************************ Sensor Functions ***************************************************
+
+int Motion(){
+    // Read Motion sensor value and return as char
+  int motionsense_int;                                // Declare integer motionsense_int
+  String motionsense_str;                             // Declare string motionsense_str
+  char motion[2];                                     // Declare a char array
+  
+  motionsense_int = digitalRead(13);                  // Read motion sensor value as int
+  motionsense_str = String(motionsense_int);          // Convert int to String
+  motionsense_str.toCharArray(motion, 2);             // Convert String to Char
+
+  Serial.print(motion);                               // Print motion value to serial
+    
+// return motion                                      // Return motion as char.
+                                                      // I get an error here... invalid conversion from char to int...
+}
+
+int Light(){
+    // Read LDR sensor value and return as char
+
+  int pVolt = analogRead(A0);                         // Read Light sensor value as int
+  String volt_str = String(pVolt);                    // Convert int to String
+  int volt_len = volt_str.length() + 1;               // Get length of string plus one
+  char volt[volt_len];                                // Create char buffer
+  volt_str.toCharArray(volt, volt_len);               // Covert String to char
+  Serial.print(volt);
+  
+  // return volt                                       // Return volt as char
+                                                       // I get an error here... invalid conversion from char to int...
+  }
+
+// ********************************************* Mosquitto Publish *****************************************************
+
+void mqttPublish(String msg, String path) {
+    // Mosquitto broadcast wrapper function
+  Serial.print("Sending ");                           // Inform Serial mqtt is about to send
+  Serial.println(msg);                                // Print message to serial
+  Serial.print(" to...");
+  Serial.println(path);                               // Print channel to serial
+  mqttClient.publish(path.c_str(), msg.c_str());      // Publish payload to topic
+}
+
+// ********************************************* Mosquitto Subcribe ****************************************************
+
+void subscribe_to_channels() {
+    // Connect/ Reconnect to Mosquitto Broker.
+      mqttPublish("hello world", "channels");          // Once connected, publish an announcement...
+      mqttClient.subscribe("commands");                // Subscribe to commands channel
+}
+
+// ********************************************* Mosquitto Callback ****************************************************
 
 void callback(char* topic, byte* payload, unsigned int length) {
     // Mosquitto Callback function. Receive messages from subscribes topics
@@ -244,40 +194,47 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
+  // Switch on the LED if an 1 was received as first character
+  if ((char)payload[0] == '1') {
+    digitalWrite(BUILTIN_LED, LOW);   // Turn the LED on (Note that LOW is the voltage level
+    // but actually the LED is on; this is because
+    // it is active low on the ESP-01)
+  } else {
+    digitalWrite(BUILTIN_LED, HIGH);  // Turn the LED off by making the voltage HIGH
+  }
 
 }
+// ******************************************** Connection Function ****************************************************
 
-// ******************************************** Connection Functions *************************************************//
 void maintain_connection(){
   // Maintain connection to Internet and Mosquitto Broker
+
   if (WiFi.status() == WL_CONNECTED) {                // If Wifi is connected
     if (!mqttClient.connected()) {                    // If mosquitto broker is not connected
       mqttConnect();                                  // Connect to mosquitto broker
-      reconnect();                                    // Reconnect and subscribe
+      subscribe_to_channels();                        // Subscribe
     }
     mqttPublish("Im alive!", "channels");             // Publish alive status
     mqttClient.loop();
 
   }
 }
-// **************************************************** Setup ********************************************************//
+// **************************************************** Setup **********************************************************
+
 void setup() {
   // Setup Function. 
   Serial.begin(115200);                              // Start Serial at baud 115200
-  config.ota = AC_OTA_BUILTIN;                       // Enable OTA browser updates
-  portal.config(config);
   Input.load(InputPage);                             // Load custom page to AutoConnect
   portal.join(Input);                                // Bind custom page to Menu
   server.on("/", onRoot);                            // Register the on-page handler
   portal.begin();                                    // Start AutoConnect
-  String value1 = Input["username"].value;           // Get Username for testing purposes
+  pinMode(ADC,INPUT);    //
+  pinMode(D14,INPUT);
   mqttClient.setCallback(callback);                  // Set up mosquitto callback
-  Serial.println("SETUP");                                                                                 
-  Serial.println(value1);
   
 }
 
-// ************************************************** Main Loop ******************************************************//
+// ************************************************** Main Loop ********************************************************
 
 void loop() {
   maintain_connection();
@@ -292,10 +249,12 @@ void loop() {
   Serial.println(value3);
   Serial.println(value4);
   mqttPublish(value1,"channels");
+  delay(1000);
   mqttPublish(value2,"channels");
+  delay(1000);
   mqttPublish(value3,"channels");
+  delay(1000);
   mqttPublish(value4,"channels");
-
   delay(1000);
 
 }
