@@ -2,6 +2,8 @@
   <dictionary name="G_MAN">
     <words>
       <w>mosquitto</w>
+      <w>motionsense</w>
+      <w>mqtt</w>
     </words>
   </dictionary>
 </component>
