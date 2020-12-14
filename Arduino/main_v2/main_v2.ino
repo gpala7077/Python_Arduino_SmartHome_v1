@@ -17,7 +17,7 @@
           //      2) home/rooms/room_name/things/thing_name/info
           //      3) home/rooms/room_name/things/thing_name/interrupt
 
-          //    Need to be formated as (replace room_name and thing_name)
+          //    Need to be formatted as (replace room_name and thing_name)
           //     i.e. channels are formatted correctly when...
           //      1) home/rooms/Kitchen/things/Kitchen_Thing1/commands
           //      2) home/rooms/Kitchen/things/Kitchen_Thing1/info
