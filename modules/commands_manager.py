@@ -217,6 +217,9 @@ class Command:
     """
 
     def __init__(self, data):
+        if isinstance(data, pd.DataFrame):
+            data = data.to_dict(orient='records')[0]
+
         self.info_id = data['info_id']  # Set attributes
         self.info_level = data['info_level']
         self.command_name = data['command_name']
@@ -284,7 +287,6 @@ class Commands:
 
         elif isinstance(command, str):
             # If passed command is a string
-
             if command.isdigit() and self.data['info_level'] < 3:  # If command is a number and less than info level 3
                 command = Command(self.data['commands_data'].query(  # Get exact command record ID
                     'command_record_id == "{}"'.format(command)).to_dict(orient='records')[0])
@@ -292,26 +294,27 @@ class Commands:
                 command = Command(self.data['commands_data'].query(
                     'command_name == "{}" and '
                     'info_id == "{}" and '
-                    'info_level == "{}"'.format(command, self.data['info_id'], self.data['info_level'])).to_dict()[0])
+                    'info_level == "{}"'.format(command, self.data['info_id'], self.data['info_level'])))
 
         elif isinstance(command, pd.DataFrame):
             # If passed command is a data frame. return a Rule object
 
             sensor_type = command['sensor_type'].tolist()[0]  # Get sensor type
             data = self.data['rules_data'].query('rule_sensor == "{}"'.format(sensor_type)).to_dict(
-                orient='records')[0]  # get rule data
+                orient='records')  # get rules data
+            command = []
+            for rule in data:
+                cmd = (  # Build command tuple
+                    Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_command'])).
+                            to_dict(orient='records')[0]),
 
-            cmd = (  # Build command tuple
-                Command(self.data['commands_data'].query('command_name == "{}"'.format(data['rule_command'])).
-                        to_dict(orient='records')[0]),
+                    Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_function'])).
+                            to_dict(orient='records')[0])
+                )
+                conditions = self.data['conditions_data'].query(  # Get all condition data
+                    'condition_rule_id == {}'.format(rule['rule_id'])).to_dict(orient='records')
 
-                Command(self.data['commands_data'].query('command_name == "{}"'.format(data['rule_function'])).
-                        to_dict(orient='records')[0])
-            )
-            conditions = self.data['conditions_data'].query(  # Get all condition data
-                'condition_rule_id == {}'.format(data['rule_id'])).to_dict(orient='records')
-
-            command = Rule(data, cmd, conditions)  # initialize new Rule object
+                command.append(Rule(rule, cmd, conditions))  # initialize new Rule object
 
         return command
 
@@ -372,15 +375,31 @@ class Commands:
 
             return 'Command executed successfully'
 
-        elif isinstance(command, Rule) and command.check_conditions(self.current_status()):  # If object is of type Rule
-            if command.rule_timer > 0 and command.rule_id in self.timers:  # If timer exists, cancel and replace
-                self.timers[command.rule_id].cancel()
-                self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
-                return self.execute(command.commands[0])
+        elif isinstance(command, list) and isinstance(command[0], Rule):
+            status = self.current_status()
+            conditions_check = []  # Initialize empty condition list
+            results = []  # Initialize empty result list
+            with ThreadPoolExecutor(max_workers=len(command)) as executor:  # Begin sub-threads
+                for cmd in command:  # iterate through each command
+                    conditions_check.append(
+                        executor.submit(self.process_rule, rule=cmd, status=status))  # submit to thread pool
 
-            elif command.rule_timer > 0:  # Create new timer
-                self.timers.update({command.rule_id: Action(command.commands[1], command.rule_timer, self.execute)})
-                return self.execute(command.commands[0])
+                for result in as_completed(conditions_check):  # Wait until all conditions have finished
+                    results.append(result.result())  # Append result to result list
+            print(results)
+
+    def process_rule(self, rule, status):
+        if rule.check_conditions(status):  # If object is of type Rule
+            if rule.rule_timer > 0 and rule.rule_id in self.timers:  # If timer exists, cancel and replace
+                self.timers[rule.rule_id].cancel()
+                self.timers.update(
+                    {rule.rule_id: Action(rule.commands[1], rule.rule_timer, self.execute)})
+                return self.execute(rule.commands[0])
+
+            elif rule.rule_timer > 0:  # Create new timer
+                self.timers.update(
+                    {rule.rule_id: Action(rule.commands[1], rule.rule_timer, self.execute)})
+                return self.execute(rule.commands[0])
 
             else:  # Execute command1 recursively
-                return self.execute(command.commands[0])
+                return self.execute(rule.commands[0])

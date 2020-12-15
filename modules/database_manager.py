@@ -41,7 +41,6 @@ class Database:
     def query(self, query, values=None):
         """Query the connecting database. Returns a pandas data frame."""
         self.db.commit()  # Ensure all changes are committed before querying.
-
         if 'select' in query:  # If query is select type. return pandas data frame
             if values is not None:
                 self.cursor.execute(query, values)
@@ -196,8 +195,8 @@ class Database:
 
         rules = self.query('select * from rules where info_level = %s and info_id = %s', [2, room_id])
 
-        conditions = self.query('select * from conditions where condition_rule_id = '
-                                '(select rule_id from rules where info_level = %s and info_id = %s)', [2, room_id])
+        conditions = self.query('select * from conditions where condition_rule_id '
+                                'IN(select rule_id from rules where info_level = %s and info_id = %s)', [2, room_id])
 
         data = {
             'info_id': room_id,
