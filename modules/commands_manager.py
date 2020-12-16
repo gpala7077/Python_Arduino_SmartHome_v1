@@ -354,8 +354,13 @@ class Commands:
             elif command.command_type == 'broadcast':
 
                 if command.command_sensor == 'group':
-                    channel = self.data['mqtt_data']['channels'].query('channel_name == "group_commands"')[
-                        'channel_broadcast'].tolist()
+                    channel = self.data['mqtt_data']['channels'].query('channel_name == "group_commands"')
+                    group_name = self.data['group_data'].query('info_id == {} and info_level == {}'.format(
+                        self.data['info_id'], self.data['info_level']))['group_name'].tolist()[0]
+
+                    channel = channel.replace('group_name', group_name, regex=True)
+                    channel = channel['channel_broadcast'].tolist()
+
                     self.mosquitto.broadcast(channel, command.command_value)
 
                 elif 'thing' in command.command_sensor:

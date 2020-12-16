@@ -110,14 +110,23 @@ class Database:
             'from pins_configurations '
             'where thing_id = %s;',
             [thing_id])
+
+        group_data = self.query('select * from home_groups where group_id '
+                                'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
+                                [thing_id, 3]).to_dict(orient='records')
+
         # Get all channels and replace room and thing name
         channels = self.query('select channel_name, channel_broadcast from mosquitto_channels')
         channels = channels.replace('room_name', room_data['room_name'], regex=True)
         channels = channels.replace('thing_name', thing_data['thing_name'], regex=True)
 
         if role == 'emitter':
-            listen = channels.query('channel_name == "thing_commands"')['channel_broadcast'].tolist()
-            # listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
+            listen = []
+            for group in group_data:
+                replace = channels.replace('group_name', group['group_name'], regex=True)
+                listen += replace.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
+
+            listen += channels.query('channel_name == "thing_commands"')['channel_broadcast'].tolist()
 
         elif role == 'receiver':
             listen = channels.query('channel_name == "thing_info"')['channel_broadcast'].tolist()
@@ -138,6 +147,7 @@ class Database:
         data = {
             'info_id': thing_id,
             'info_level': 3,
+            'group_data': group_data,
             'room_data': room_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,
@@ -162,12 +172,22 @@ class Database:
             '(select rooms_thing_id from rooms_things where rooms_room_id = %s);', [room_id]
         )
 
+        group_listen = self.query('select group_id, group_name from home_groups where group_id '
+                                  'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
+                                  [room_id, 2]).to_dict(orient='records')
+
+        group_data = self.query('select * from home_groups')
+
         # Get all mosquitto channels
         channels = self.query('select * from mosquitto_channels')
         channels = channels.replace('room_name', room_data['room_name'], regex=True)  # prepare channels
         # Prepare listening channels
-        listen = channels.query('channel_name == "room_commands"')['channel_broadcast'].tolist()
-        # listen += channels.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
+        listen = []
+        for group in group_listen:
+            replace = channels.replace('group_name', group['group_name'], regex=True)
+            listen += replace.query('channel_name == "group_commands"')['channel_broadcast'].tolist()
+
+        listen += channels.query('channel_name == "room_commands"')['channel_broadcast'].tolist()
 
         # Create receiving listening channels per each thing
         l1 = channels.query('channel_name=="thing_interrupt"')
@@ -205,6 +225,7 @@ class Database:
             'info_level': 2,
             'hue_data': hue_data,
             'room_data': room_data,
+            'group_data': group_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,
             'commands_data': commands_data,
