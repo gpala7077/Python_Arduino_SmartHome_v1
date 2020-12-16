@@ -378,7 +378,7 @@ class Commands:
                 payload = command.command_value
                 self.mosquitto.broadcast(channel, str(payload))
 
-            return 'Command executed successfully'
+            return '{} | Command executed successfully'.format(command)
 
         elif isinstance(command, list) and isinstance(command[0], Rule):
             status = self.current_status()
