@@ -112,11 +112,11 @@ class Thing(Main):
             self.mosquitto.new_status = False
         return self.sensors()
 
-    def request_status_every(self, repeat, quit_event):
+    def status_interval(self, repeat, quit_event):
         if quit_event.isSet():
             return
         else:
-            Timer(repeat, self.request_status_every, args=[repeat, quit_event]).start()
+            Timer(repeat, self.status_interval, args=[repeat, quit_event]).start()
             self.get_status()
 
     def run(self):
@@ -126,4 +126,4 @@ class Thing(Main):
         interval = 30
         print('Requesting sensor information for {}.\n'
               'Repeating request every {} seconds.\n'.format(self.__class__.__name__, interval))
-        self.request_status_every(interval, quit_event)
+        self.status_interval(interval, quit_event)
