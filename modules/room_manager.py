@@ -1,5 +1,5 @@
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from threading import Thread, Timer, Event
 
 import pandas as pd
@@ -53,7 +53,7 @@ class Room(Main):
         status = []  # Initialize empty condition list
         with ThreadPoolExecutor() as executor:  # Begin sub-threads
             for thing in self.things:
-                status.append(executor.submit(self.things[thing].get_status))  # submit to thread pool
+                status.append(executor.submit(self.things[thing].get_status, current=False))  # submit to thread pool
 
             for result in as_completed(status):  # Wait until all things have been read
                 df = df.append(result.result())
@@ -102,13 +102,14 @@ class Thing(Main):
 
         return '{} initialized\n'.__class__.__name__
 
-    def get_status(self):
+    def get_status(self, current=True):
         payload = 'status'  # define payload
-        channel = self.data['mqtt_data']['channels_dict']['thing_commands'] #Prepare channel
+        channel = self.data['mqtt_data']['channels_dict']['thing_commands']  # Prepare channel
         self.mosquitto.broadcast(channel, payload)  # Request thing status
-        while not self.new_status():
-            pass
-        self.mosquitto.new_status = False
+        if current:
+            while not self.new_status():
+                pass
+            self.mosquitto.new_status = False
         return self.sensors()
 
     def request_status_every(self, repeat, quit_event):
@@ -122,8 +123,7 @@ class Thing(Main):
         """Initialize thing. """
         super(Thing, self).run()  # Call super class
         quit_event = Event()
-        interval = 60 * 10
+        interval = 30
         print('Requesting sensor information for {}.\n'
               'Repeating request every {} seconds.\n'.format(self.__class__.__name__, interval))
         self.request_status_every(interval, quit_event)
-
