@@ -148,7 +148,6 @@ class Database:
 
     def get_room_data(self, room_id):
         """Get all necessary room data"""
-        print(room_id)
         # get room data
         room_data = self.query('select * from home_rooms where room_id = %s', [room_id]).to_dict(orient='records')[0]
 
@@ -197,10 +196,14 @@ class Database:
 
         conditions = self.query('select * from conditions where condition_rule_id '
                                 'IN(select rule_id from rules where info_level = %s and info_id = %s)', [2, room_id])
+        hue_groups = self.query('select group_id, name from hue_groups')
 
+        group_id = hue_groups.query('name == "{}"'.format(room_data['room_name']))['group_id'].tolist()[0]
+        hue_data = {'group_id': group_id, 'hue_groups': hue_groups, 'hue_lights': None}
         data = {
             'info_id': room_id,
             'info_level': 2,
+            'hue_data': hue_data,
             'room_data': room_data,
             'thing_data': thing_data,
             'sensor_data': sensor_data,

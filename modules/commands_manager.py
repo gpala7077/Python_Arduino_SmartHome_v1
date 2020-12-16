@@ -161,7 +161,7 @@ class Rule:
 
         conditions_check = []  # Initialize empty condition list
         results = []  # Initialize empty result list
-        with ThreadPoolExecutor(max_workers=len(self.conditions)) as executor:  # Begin sub-threads
+        with ThreadPoolExecutor() as executor:  # Begin sub-threads
             for condition in self.conditions:  # iterate through each condition
 
                 if any(char.isdigit() for char in condition.condition_check):
@@ -331,24 +331,24 @@ class Commands:
 
             elif command.command_type == 'read' and command.command_sensor == 'all':
                 result = self.r_pi_read_write()
-                self.mosquitto.broadcast(self.data['mqtt_data']['channels'].
-                                         query('channel_name=="thing_info"')['channel_broadcast'].tolist(), result)
+                self.mosquitto.broadcast(self.data['mqtt_data']['channels_dict']['thing_info'], result)
 
             elif command.command_type == 'read':
                 result = self.r_pi_read_write(command.get_query())
-                self.mosquitto.broadcast(self.data['mqtt_data']['channels'].
-                                         query('channel_name=="thing_info"')['channel_broadcast'].tolist(), result)
+                self.mosquitto.broadcast(self.data['mqtt_data']['channels_dict']['thing_info'], result)
 
             # ***************** Phillips Hue - Third Party Commands *****************
             elif command.command_type == 'hue':
 
                 command.command_value = command.command_value.replace("'", "\"")
                 if command.command_sensor == 'group':
-                    print(self.third_party['hue'].set_group(self.data['info_id'], command.command_value))
+                    num = self.data['hue_data']['group_id']
+                    print(self.third_party['hue'].set_group(num, command.command_value))
 
-                elif 'light' in command.command_sensor:
-                    num = list(filter(lambda x: x.isdigit(), command.command_sensor))[0]
-                    print(self.third_party['hue'].set_light(num, command.command_value))
+                else:
+                    num = self.data['hue_data']['hue_groups'].query('name == "{}"'.format(
+                        command.command_sensor))['group_id'].tolist()[0]
+                    print(self.third_party['hue'].set_group(num, command.command_value))
 
             # ***************** Broadcast commands *****************
             elif command.command_type == 'broadcast':
@@ -376,30 +376,30 @@ class Commands:
             return 'Command executed successfully'
 
         elif isinstance(command, list) and isinstance(command[0], Rule):
+            print(len(command))
             status = self.current_status()
-            conditions_check = []  # Initialize empty condition list
+            check_rules = []  # Initialize empty condition list
             results = []  # Initialize empty result list
-            with ThreadPoolExecutor(max_workers=len(command)) as executor:  # Begin sub-threads
+
+            with ThreadPoolExecutor() as executor:  # Begin sub-threads
+                print('here')
                 for cmd in command:  # iterate through each command
-                    conditions_check.append(
+                    check_rules.append(
                         executor.submit(self.process_rule, rule=cmd, status=status))  # submit to thread pool
 
-                for result in as_completed(conditions_check):  # Wait until all conditions have finished
+                for result in as_completed(check_rules):  # Wait until all conditions have finished
                     results.append(result.result())  # Append result to result list
             print(results)
 
     def process_rule(self, rule, status):
-        if rule.check_conditions(status):  # If object is of type Rule
+        if rule.check_conditions(status):  # If Rule passes all conditions
             if rule.rule_timer > 0 and rule.rule_id in self.timers:  # If timer exists, cancel and replace
                 self.timers[rule.rule_id].cancel()
                 self.timers.update(
                     {rule.rule_id: Action(rule.commands[1], rule.rule_timer, self.execute)})
-                return self.execute(rule.commands[0])
 
             elif rule.rule_timer > 0:  # Create new timer
                 self.timers.update(
                     {rule.rule_id: Action(rule.commands[1], rule.rule_timer, self.execute)})
-                return self.execute(rule.commands[0])
 
-            else:  # Execute command1 recursively
-                return self.execute(rule.commands[0])
+            return self.execute(rule.commands[0])

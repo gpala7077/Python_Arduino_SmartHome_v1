@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from modules.main_manager import Main
 from modules.thing_manager import MCU
 
@@ -41,13 +43,26 @@ class Thing_Main(Main):
         self.r_pi.process_interrupt = self.process_interrupt  # Pass function to RPI
         print(self.r_pi.start())  # Start up the RPI
 
+    def interrupt(self, channel, payload):
+        return self.mosquitto.broadcast(channel, payload())
+
     def process_interrupt(self):
         """Process active interrupt."""
         print('Processing Interrupt for {}'.__class__.__name__)  # Call super class
-        payload = self.interrupts.get()  # Prepare payload
-        channels = self.data['mqtt_data']['channels'].query('channel_name == "thing_interrupt"')[
-            'channel_broadcast'].tolist()  # Prepare channel
-        self.mosquitto.broadcast(channels, payload)  # Broadcast interrupt
+        channels = [
+            self.data['mqtt_data']['channels_dict']['thing_info'],
+            self.data['mqtt_data']['channels_dict']['thing_interrupt']
+        ]
+        payloads = [self.r_pi.read_write, self.interrupts.get]
+        action = []  # Initialize empty condition list
+        results = []  # Initialize empty result list
+        with ThreadPoolExecutor(max_workers=2) as executor:  # Begin sub-threads
+            for i in range(2):
+                action.append(executor.submit(self.interrupt, channel=channels[i], payload=payloads[i]))
+
+            for result in as_completed(action):  # Wait until all conditions have finished
+                results.append(result.result())  # Append result to result list
+        print(results)
 
     def run(self):
         """Start main loop."""

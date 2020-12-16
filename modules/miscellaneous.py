@@ -24,7 +24,8 @@ class Queue:
             self.queue.insert(0, element)
 
     def get(self):  # Get first item from list
-        return self.queue.pop(0)
+        if len(self.queue) > 0:
+            return self.queue.pop(0)
 
     def __bool__(self):  # Return True if list is not empty. False if empty
         return len(self.queue) > 0
