@@ -49,20 +49,9 @@ class Thing_Main(Main):
     def process_interrupt(self):
         """Process active interrupt."""
         print('Processing Interrupt for {}'.__class__.__name__)  # Call super class
-        channels = [
-            self.data['mqtt_data']['channels_dict']['thing_info'],
-            self.data['mqtt_data']['channels_dict']['thing_interrupt']
-        ]
-        payloads = [self.r_pi.read_write, self.interrupts.get]
-        action = []  # Initialize empty condition list
-        results = []  # Initialize empty result list
-        with ThreadPoolExecutor(max_workers=2) as executor:  # Begin sub-threads
-            for i in range(2):
-                action.append(executor.submit(self.interrupt, channel=channels[i], payload=payloads[i]))
-
-            for result in as_completed(action):  # Wait until all conditions have finished
-                results.append(result.result())  # Append result to result list
-        print(results)
+        channel = self.data['mqtt_data']['channels_dict']['thing_interrupt']
+        payload = self.interrupts.get()
+        print(self.mosquitto.broadcast(channel, payload))
 
     def run(self):
         """Start main loop."""

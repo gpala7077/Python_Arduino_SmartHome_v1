@@ -107,7 +107,7 @@ class Thing(Main):
         channel = self.data['mqtt_data']['channels_dict']['thing_commands'] #Prepare channel
         self.mosquitto.broadcast(channel, payload)  # Request thing status
         while not self.new_status():
-            time.sleep(.5)
+            pass
         self.mosquitto.new_status = False
         return self.sensors()
 
@@ -124,6 +124,6 @@ class Thing(Main):
         quit_event = Event()
         interval = 60 * 10
         print('Requesting sensor information for {}.\n'
-              'Repeating request every {} seconds.'.format(self.__class__.__name__, interval))
+              'Repeating request every {} seconds.\n'.format(self.__class__.__name__, interval))
         self.request_status_every(interval, quit_event)
 

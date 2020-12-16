@@ -376,13 +376,11 @@ class Commands:
             return 'Command executed successfully'
 
         elif isinstance(command, list) and isinstance(command[0], Rule):
-            print(len(command))
             status = self.current_status()
             check_rules = []  # Initialize empty condition list
             results = []  # Initialize empty result list
 
             with ThreadPoolExecutor() as executor:  # Begin sub-threads
-                print('here')
                 for cmd in command:  # iterate through each command
                     check_rules.append(
                         executor.submit(self.process_rule, rule=cmd, status=status))  # submit to thread pool
