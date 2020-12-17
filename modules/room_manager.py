@@ -109,22 +109,25 @@ class Thing(Main):
         self.mosquitto.broadcast(channel, payload)  # Request thing status
         if current:
             retry = 3
-            timeout = 10
+            timeout = 15
             started = datetime.now()
             i = 0
             while not self.new_status():
                 if (datetime.now() - started).total_seconds() >= timeout and i <= retry:
+                    print('No Response...Reattempting. Attempted {} time(s)'.format(i))
                     self.mosquitto.broadcast(channel, payload)  # Request thing status
                     started = datetime.now()
                     i += 1
-                else:
+                elif i > retry:
                     if not self.sensors().empty:
                         print('No Response, sending last known status')
                         return self.sensors()
                     else:
+                        print('here')
                         return 'No Response'
 
             self.mosquitto.new_status = False
+            print('here')
         return self.sensors()
 
     def status_interval(self, repeat, quit_event):
