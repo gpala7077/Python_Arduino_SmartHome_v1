@@ -28,8 +28,10 @@ String username;
 String password;
 String host_up;
 String database;
-#define ADC A0 //Light Sensor
-#define D14 13 //Motion Sensor
+//#define motion1 13 //Motion Sensor
+#define magnet1 12 //Door Sensor
+
+
 // ************************************************** Input Page *******************************************************
 
 const static char InputPage[] PROGMEM = R"r(
@@ -133,35 +135,30 @@ void onRoot() {
 
 // ************************************************ Sensor Functions ***************************************************
 
-int Motion(){
-    // Read Motion sensor value and return as char
-  int motionsense_int;                                // Declare integer motionsense_int
-  String motionsense_str;                             // Declare string motionsense_str
-  char motion[2];                                     // Declare a char array
-  
-  motionsense_int = digitalRead(13);                  // Read motion sensor value as int
-  motionsense_str = String(motionsense_int);          // Convert int to String
-  motionsense_str.toCharArray(motion, 2);             // Convert String to Char
+//int motion(){
+//    // Read Motion sensor value and return as char
+//  int motionsense_int;                                // Declare integer motionsense_int  
+//  motionsense_int = digitalRead(motion1);             // Read motion sensor value as int
+//  return motionsense_int;                             // Return motion value (motion / no motion)
+//}
 
-  Serial.print(motion);                               // Print motion value to serial
-    
-// return motion                                      // Return motion as char.
-                                                      // I get an error here... invalid conversion from char to int...
+int magnet(){
+    // Read Motion sensor value and return as char
+  int magnet_int;                                     // Declare integer magnet_int  
+  magnet_int = digitalRead(magnet1);                  // Read magnet sensor value as int
+  return magnet_int;                                  // Return magnet value (open / close)
 }
 
-int Light(){
-    // Read LDR sensor value and return as char
+// ********************************************* Interrupt Callbacks ***************************************************
 
-  int pVolt = analogRead(A0);                         // Read Light sensor value as int
-  String volt_str = String(pVolt);                    // Convert int to String
-  int volt_len = volt_str.length() + 1;               // Get length of string plus one
-  char volt[volt_len];                                // Create char buffer
-  volt_str.toCharArray(volt, volt_len);               // Covert String to char
-  Serial.print(volt);
+void magnet_detect(){
+  Serial.println("Interrupt function triggered");
+//  int motion_status = motion();
+  int magnet_status = magnet();
+
+  Serial.print(magnet_status);
   
-  // return volt                                       // Return volt as char
-                                                       // I get an error here... invalid conversion from char to int...
-  }
+}
 
 // ********************************************* Mosquitto Publish *****************************************************
 
@@ -228,16 +225,16 @@ void setup() {
   portal.join(Input);                                // Bind custom page to Menu
   server.on("/", onRoot);                            // Register the on-page handler
   portal.begin();                                    // Start AutoConnect
-  pinMode(ADC,INPUT);    //
-  pinMode(D14,INPUT);
   mqttClient.setCallback(callback);                  // Set up mosquitto callback
-  
+  pinMode(magnet1, INPUT);
+//  attachInterrupt(digitalPinToInterrupt(magnet1),magnet_detect, RISING);
+  maintain_connection();
+
 }
 
 // ************************************************** Main Loop ********************************************************
 
 void loop() {
-  maintain_connection();
   portal.handleClient();
 
   String value1 = Input["username"].value;
@@ -248,6 +245,7 @@ void loop() {
   Serial.println(value2);
   Serial.println(value3);
   Serial.println(value4);
+  Serial.println(digitalRead(magnet1));
   mqttPublish(value1,"channels");
   delay(1000);
   mqttPublish(value2,"channels");
@@ -256,5 +254,6 @@ void loop() {
   delay(1000);
   mqttPublish(value4,"channels");
   delay(1000);
+  
 
 }
