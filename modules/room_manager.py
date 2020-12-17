@@ -123,7 +123,6 @@ class Thing(Main):
                         print('No Response, sending last known status')
                         return self.sensors()
                     else:
-                        print('here')
                         return 'No Response'
 
             self.mosquitto.new_status = False
