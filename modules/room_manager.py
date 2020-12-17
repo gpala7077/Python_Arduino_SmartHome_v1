@@ -109,7 +109,7 @@ class Thing(Main):
         self.mosquitto.broadcast(channel, payload)  # Request thing status
         if current:
             retry = 3
-            timeout = 15
+            timeout = 10
             started = datetime.now()
             i = 0
             while not self.new_status():

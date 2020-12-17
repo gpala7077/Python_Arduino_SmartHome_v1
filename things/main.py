@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Thread
 
 from modules.main_manager import Main
 from modules.thing_manager import MCU
@@ -43,15 +44,13 @@ class Thing_Main(Main):
         self.r_pi.process_interrupt = self.process_interrupt  # Pass function to RPI
         print(self.r_pi.start())  # Start up the RPI
 
-    def interrupt(self, channel, payload):
-        return self.mosquitto.broadcast(channel, payload())
-
     def process_interrupt(self):
         """Process active interrupt."""
         print('Processing Interrupt for {}'.__class__.__name__)  # Call super class
-        channel = self.data['mqtt_data']['channels_dict']['thing_interrupt']
-        payload = self.interrupts.get()
-        print(self.mosquitto.broadcast(channel, payload))
+        channel_1 = self.data['mqtt_data']['channels_dict']['thing_interrupt']
+        channel_2 = self.data['mqtt_data']['channels_dict']['thing_info']
+        print(self.mosquitto.broadcast(channel_1, self.interrupts.get()))
+        print(self.mosquitto.broadcast(channel_2, self.r_pi.read_write()))
 
     def run(self):
         """Start main loop."""
