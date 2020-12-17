@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 
 from threading import Thread, Timer, Event
 
@@ -107,8 +108,22 @@ class Thing(Main):
         channel = self.data['mqtt_data']['channels_dict']['thing_commands']  # Prepare channel
         self.mosquitto.broadcast(channel, payload)  # Request thing status
         if current:
+            retry = 3
+            timeout = 10
+            started = datetime.now()
+            i = 0
             while not self.new_status():
-                pass
+                if (datetime.now() - started).total_seconds() >= timeout and i <= retry:
+                    self.mosquitto.broadcast(channel, payload)  # Request thing status
+                    started = datetime.now()
+                    i += 1
+                else:
+                    if not self.sensors().empty:
+                        print('No Response, sending last known status')
+                        return self.sensors()
+                    else:
+                        return 'No Response'
+
             self.mosquitto.new_status = False
         return self.sensors()
 
@@ -123,7 +138,7 @@ class Thing(Main):
         """Initialize thing. """
         super(Thing, self).run()  # Call super class
         quit_event = Event()
-        interval = 30
+        interval = 60 * 5
         print('Requesting sensor information for {}.\n'
               'Repeating request every {} seconds.\n'.format(self.__class__.__name__, interval))
         self.status_interval(interval, quit_event)
