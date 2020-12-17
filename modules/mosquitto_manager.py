@@ -28,7 +28,7 @@ class Mosquitto:
 
         msg = message.payload.decode("utf-8")  # Decode message
         topic = message.topic  # Get topic
-        print('Received message!\n{}\n{}\n'.format(topic, msg))
+        print('\nReceived message!\n{}\n{}\n'.format(topic, msg))
         self.messages.add((topic, msg))  # Add to queue
 
         return 'Added message to Queue\n'

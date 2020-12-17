@@ -396,13 +396,13 @@ class Commands:
 
     def process_rule(self, rule, status):
         if rule.check_conditions(status):  # If Rule passes all conditions
-            if rule.rule_timer > 0 and rule.rule_id in self.timers:  # If timer exists, cancel and replace
-                self.timers[rule.rule_id].cancel()
+            if rule.rule_timer > 0 and rule.rule_sensor in self.timers:  # If timer exists, cancel and replace
+                self.timers[rule.rule_sensor].cancel()
                 self.timers.update(
-                    {rule.rule_id: Action(rule.commands[1], rule.rule_timer, self.execute)})
+                    {rule.rule_sensor: Action(rule.commands[1], rule.rule_timer, self.execute)})
 
             elif rule.rule_timer > 0:  # Create new timer
                 self.timers.update(
-                    {rule.rule_id: Action(rule.commands[1], rule.rule_timer, self.execute)})
+                    {rule.rule_sensor: Action(rule.commands[1], rule.rule_timer, self.execute)})
 
             return self.execute(rule.commands[0])

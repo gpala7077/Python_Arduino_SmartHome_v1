@@ -104,10 +104,12 @@ class Thing(Main):
         return '{} initialized\n'.__class__.__name__
 
     def get_status(self, current=True):
-        payload = 'status'  # define payload
-        channel = self.data['mqtt_data']['channels_dict']['thing_commands']  # Prepare channel
-        self.mosquitto.broadcast(channel, payload)  # Request thing status
+        """Returns current or last known status."""
         if current:
+            payload = 'status'  # define payload
+            channel = self.data['mqtt_data']['channels_dict']['thing_commands']  # Prepare channel
+            self.mosquitto.broadcast(channel, payload)  # Request thing status
+
             retry = 3
             timeout = 10
             started = datetime.now()
@@ -129,6 +131,7 @@ class Thing(Main):
         return self.sensors()
 
     def status_interval(self, repeat, quit_event):
+        """Perpetually request a status update"""
         if quit_event.isSet():
             return
         else:

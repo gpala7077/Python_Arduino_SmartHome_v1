@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Thread
-
+import sys
 from modules.main_manager import Main
 from modules.thing_manager import MCU
 
@@ -9,6 +9,7 @@ credentials = {
     'password': 'password',
     'database': 'smart_home',
     'host': '192.168.50.173'}
+thing_id = sys.argv[1]
 
 
 class Thing_Main(Main):
@@ -64,6 +65,7 @@ class Thing_Main(Main):
 
 
 if __name__ == '__main__':
-    main = Thing_Main(credentials, 1)
+    print('Preparing thing {}.'.format(thing_id))
+    main = Thing_Main(credentials, thing_id)
     main.initialize()
     main.run()
