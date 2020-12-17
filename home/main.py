@@ -31,6 +31,7 @@ class Home(Main):
     def __init__(self, credentials):
         super().__init__(credentials)  # initialize parent class
         self.data = self.db.get_home_data()  # get home data from db
+        self.name = 'Home'
         self.rooms = {room['room_name']: Room(credentials, room['room_id'])  # create dictionary of rooms
                       for room in self.data['room_data'].to_dict(orient='records')}
 
@@ -41,7 +42,7 @@ class Home(Main):
         self.initialize_third_party()  # Initialize third-party APIs
         for room in self.rooms:  # Iterate through each room
             self.rooms[room].third_party = self.third_party  # Provide access to 3rd party apps to rooms
-            self.rooms[room].__class__.__name__ = room  # Name class as room name for logs
+            self.rooms[room].name = room  # Name class as room name for logs
             print(self.rooms[room].initialize())  # Initialize each room
 
     def initialize_third_party(self):  # Initialize 3rd party apps

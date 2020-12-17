@@ -41,7 +41,7 @@ class Room(Main):
         self.commands.current_status = self.current_status  # reference status to commands
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
         for thing in self.things:  # Initialize all things
-            self.things[thing].__class__.__name__ = thing
+            self.things[thing].name = thing
             print(self.things[thing].initialize())
         return '{} initialized\n'.format(self.__class__.__name__)
 

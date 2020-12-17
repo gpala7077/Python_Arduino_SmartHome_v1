@@ -380,7 +380,7 @@ class Commands:
 
             return '{} | Command executed successfully'.format(command)
 
-        elif isinstance(command, list) and isinstance(command[0], Rule):
+        elif len(command) > 0 and (command, list) and isinstance(command[0], Rule):
             status = self.current_status()
             check_rules = []  # Initialize empty condition list
             results = []  # Initialize empty result list
