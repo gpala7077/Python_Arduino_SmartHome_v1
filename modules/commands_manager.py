@@ -303,6 +303,7 @@ class Commands:
             data = self.data['rules_data'].query('rule_sensor == "{}"'.format(sensor_type)).to_dict(
                 orient='records')  # get rules data
             command = []
+
             for rule in data:
                 cmd = (  # Build command tuple
                     Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_command'])).

@@ -46,7 +46,7 @@ class Room(Main):
         return '{} initialized\n'.format(self.__class__.__name__)
 
     def current_status(self):
-        """Get current room status."""
+        """Get currentroom status."""
 
         print('Getting current status for {}'.format(self.__class__.__name__))
         df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])  # Create empty data frame
