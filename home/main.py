@@ -81,7 +81,7 @@ class Home(Main):
             return
         else:
             Timer(repeat, self.status_interval, args=[repeat, quit_event]).start()
-            self.current_status()
+            self.current_status(current=True)
 
     def run(self):
         """Run all sub-threads."""

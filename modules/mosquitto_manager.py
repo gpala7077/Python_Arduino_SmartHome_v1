@@ -15,7 +15,7 @@ class Mosquitto:
         self.interrupts = Queue('LIFO')
         self.commands = None
         self.sensors = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])
-        self.new_status = False
+        self.new_status_flag = False
 
     def mosquitto_callback(self, client, userdata, message):
         """Mosquitto callback function."""
@@ -49,7 +49,7 @@ class Mosquitto:
             self.process_interrupt()  # Process interrupt
 
         elif 'info' in topic:  # If info
-            self.new_status = True
+            self.new_status_flag = True
             msg = msg.replace("'", "\"")  # Replace single for double quotes
             msg = json.loads(msg)  # convert to dictionary
             self.sensors = pd.DataFrame.from_dict(msg)  # Convert to data frame and replace sensors
@@ -61,8 +61,8 @@ class Mosquitto:
         """Return sensors data frame"""
         return self.sensors  # Return sensors Data frame
 
-    def get_status(self):
-        return self.new_status
+    def new_status(self):
+        return self.new_status_flag
 
     def connect(self):
         """Connect to MQTT Broker and set callback."""
