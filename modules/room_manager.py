@@ -45,7 +45,7 @@ class Room(Main):
             print(self.things[thing].initialize())
         return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 
-    def current_status(self):
+    def current_status(self, current=False):
         """Get current room status."""
 
         print('Getting current status for {}'.format(self.name))
@@ -54,7 +54,7 @@ class Room(Main):
         status = []  # Initialize empty condition list
         with ThreadPoolExecutor() as executor:  # Begin sub-threads
             for thing in self.things:
-                status.append(executor.submit(self.things[thing].get_status, current=False))  # submit to thread pool
+                status.append(executor.submit(self.things[thing].get_status, current=current))  # submit to thread pool
 
             for result in as_completed(status):  # Wait until all things have been read
                 df = df.append(result.result())

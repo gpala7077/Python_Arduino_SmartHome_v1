@@ -401,7 +401,7 @@ class Commands:
 
                 elif command.command_sensor == 'room':
                     channel = self.data['mqtt_data']['channels_dict']['room_info']
-                    self.mosquitto.broadcast(channel, str(self.current_status().to_dict(orient='list')))
+                    self.mosquitto.broadcast(channel, str(self.current_status(current=True).to_dict(orient='list')))
 
             # ***************** App commands *****************
             elif command.command_type == 'app':
@@ -412,7 +412,7 @@ class Commands:
             return '{} | Command executed successfully'.format(command)
 
         elif len(command) > 0 and (command, list) and isinstance(command[0], Rule):
-            status = self.current_status()
+            status = self.current_status(current=False) # True for current status, False for last known status.
             check_rules = []  # Initialize empty condition list
             results = []  # Initialize empty result list
 

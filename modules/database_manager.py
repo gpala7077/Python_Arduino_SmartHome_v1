@@ -264,10 +264,15 @@ class Database:
         commands_data = self.query('select * from commands')
         rules = self.query('select * from rules')
         group_data = self.query('select * from home_groups')
+        hue_groups = self.query('select group_id, name from hue_groups')
+
+        group_id = hue_groups.query('name == "{}"'.format('Home'))['group_id'].tolist()[0]
+        hue_data = {'group_id': group_id, 'hue_groups': hue_groups, 'hue_lights': None}
 
         data = {
             'info_level': 1,
             'info_id':  1,
+            'hue_data': hue_data,
             'room_data': room_data,
             'thing_data': thing_data,
             'group_data': group_data,
