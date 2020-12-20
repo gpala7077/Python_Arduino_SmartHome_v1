@@ -43,6 +43,7 @@ class Home(Main):
         super(Home, self).initialize()  # Call parent class
         self.initialize_third_party()  # Initialize third-party APIs
         self.third_party['push'].commands = self.commands   # Give access to commands class to PushBullet API
+        self.commands.third_party = self.third_party  # Reference 3rd party API to commands
         for room in self.rooms:  # Iterate through each room
             self.rooms[room].third_party = self.third_party  # Provide access to 3rd party apps to rooms
             self.rooms[room].name = room  # Name class as room name for logs

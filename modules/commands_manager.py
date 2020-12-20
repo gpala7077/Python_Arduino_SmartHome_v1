@@ -367,6 +367,20 @@ class Commands:
                     body = data['body']
                     self.third_party['push'].push.push_note(title=title, body=body)
 
+            # ***************** Sonos - Third Party Commands *****************
+            elif command.command_type == 'sonos':
+                if command.command_sensor == 'listen' and command.command_value == 'random':
+                    self.third_party['sonos'].listen()
+
+                elif command.command_sensor == 'listen':
+                    self.third_party['sonos'].listen(command.command_value)
+
+                elif command.command_sensor == 'speak':
+                    current = self.third_party['sonos'].player.volume
+                    self.third_party['sonos'].player.volume += 25
+                    self.third_party['sonos'].speak(command.command_value)
+                    self.third_party['sonos'].player.volume = current
+
             # ***************** Broadcast commands *****************
             elif command.command_type == 'broadcast':
 

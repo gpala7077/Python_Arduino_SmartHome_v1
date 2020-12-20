@@ -20,7 +20,7 @@ class Push:
         except KeyboardInterrupt:
             s.close()
 
-    def delete_pushes(self):
+    def clear_pushes(self):
         return self.push.delete_pushes()
 
 
