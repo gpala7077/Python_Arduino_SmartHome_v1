@@ -1,2 +1,2 @@
-# smart_home
+# Smart Home Service
 Cloud
