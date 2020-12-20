@@ -56,7 +56,7 @@ class Room(Main):
         status = []  # Initialize empty condition list
         with ThreadPoolExecutor() as executor:  # Begin sub-threads
             for thing in self.things:
-                status.append(executor.submit(self.things[thing].get_status, current=current))  # submit to thread pool
+                status.append(executor.submit(self.things[thing].current_status, current=current))  # submit to thread pool
 
             for result in as_completed(status):  # Wait until all things have been read
                 df = df.append(result.result())
@@ -101,11 +101,11 @@ class Thing(Main):
 
         super(Thing, self).initialize()  # Call super class
         self.sensors = self.mosquitto.get_sensors  # reference get_sensors
-        self.new_status = self.mosquitto.get_status
+        self.new_status = self.mosquitto.new_status
 
         return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 
-    def get_status(self, current=True):
+    def current_status(self, current=True):
         """Returns current or last known status."""
 
         print(
@@ -136,19 +136,6 @@ class Thing(Main):
             self.mosquitto.new_status = False
         return self.sensors()
 
-    def status_interval(self, repeat, quit_event):
-        """Perpetually request a status update"""
-        if quit_event.isSet():
-            return
-        else:
-            Timer(repeat, self.status_interval, args=[repeat, quit_event]).start()
-            self.get_status()
-
     def run(self):
         """Initialize thing. """
         super(Thing, self).run()  # Call super class
-        quit_event = Event()
-        interval = 60 * 5
-        print('Requesting sensor information for {}.\n'
-              'Repeating request every {} seconds.\n'.format(self.name, interval))
-        self.status_interval(interval, quit_event)

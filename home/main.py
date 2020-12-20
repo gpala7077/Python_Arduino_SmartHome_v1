@@ -1,4 +1,4 @@
-from threading import Thread
+from threading import Thread, Timer, Event
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 from modules.hue_manager import Hue
@@ -75,11 +75,24 @@ class Home(Main):
                 df = df.append(result.result())
         return df
 
+    def status_interval(self, repeat, quit_event):
+        """Perpetually request a status update"""
+        if quit_event.isSet():
+            return
+        else:
+            Timer(repeat, self.status_interval, args=[repeat, quit_event]).start()
+            self.current_status()
+
     def run(self):
         """Run all sub-threads."""
         super(Home, self).run()  # Call parent class
-        # self.third_party['sonos'].listen('LoFi Hip Hop')
-        # self.third_party['sonos'].player.volume = 20
+
+        quit_event = Event()
+        interval = 60 * 5
+        print('Requesting room information for {}.\n'
+              'Repeating request every {} seconds.\n'.format(self.name, interval))
+        self.status_interval(interval, quit_event)
+
         Thread(target=self.third_party['push'].listen()).start() # Listen for commands from PushBullet API - home lvl
         for room in self.rooms:  # Begin room sub-threads
             Thread(target=self.rooms[room].run).start()
