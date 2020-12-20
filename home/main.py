@@ -59,8 +59,8 @@ class Home(Main):
     def run(self):
         """Run all sub-threads."""
         super(Home, self).run()  # Call parent class
-        self.third_party['sonos'].listen('LoFi Hip Hop')
-        self.third_party['sonos'].player.volume = 20
+        # self.third_party['sonos'].listen('LoFi Hip Hop')
+        # self.third_party['sonos'].player.volume = 20
         Thread(target=self.third_party['push'].listen()).start() # Listen for commands from PushBullet API - home lvl
         for room in self.rooms:  # Begin room sub-threads
             Thread(target=self.rooms[room].run).start()
