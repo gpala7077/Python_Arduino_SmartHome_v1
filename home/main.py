@@ -1,6 +1,6 @@
 from threading import Thread
 
-from modules.hue_manager import HueAPI
+from modules.hue_manager import Hue
 from modules.main_manager import Main
 from modules.push_manager import Push
 from modules.room_manager import Room
@@ -51,7 +51,7 @@ class Home(Main):
     def initialize_third_party(self):  # Initialize 3rd party apps
         """Initialize third-party applications."""
 
-        self.third_party.update({'hue': HueAPI(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
+        self.third_party.update({'hue': Hue(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
         self.third_party.update({'push': Push('o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
         self.third_party.update({'sonos': Sonos('192.168.50.59')})
 

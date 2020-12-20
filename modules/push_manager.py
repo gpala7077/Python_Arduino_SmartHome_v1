@@ -11,7 +11,6 @@ class Push:
         print("Received data:\n{}".format(data))
         latest_push = self.push.get_pushes()[0]
         if 'title' not in latest_push:
-
             self.push.push_note('SmartHome Commands', self.commands.execute(latest_push['body']))
 
     def listen(self):

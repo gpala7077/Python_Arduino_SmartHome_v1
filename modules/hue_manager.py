@@ -2,7 +2,7 @@ import json
 import requests
 
 
-class HueAPI:
+class Hue:
     """Third-Party API representing Hue Light bulbs
 
     Attributes
