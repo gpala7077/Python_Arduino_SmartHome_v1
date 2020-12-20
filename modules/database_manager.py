@@ -263,11 +263,14 @@ class Database:
 
         commands_data = self.query('select * from commands')
         rules = self.query('select * from rules')
+        group_data = self.query('select * from home_groups')
 
         data = {
             'info_level': 1,
+            'info_id':  1,
             'room_data': room_data,
             'thing_data': thing_data,
+            'group_data': group_data,
             'sensor_data': sensor_data,
             'commands_data': commands_data,
             'rules_data': rules,

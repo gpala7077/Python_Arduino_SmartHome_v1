@@ -1,5 +1,5 @@
 import time
-
+import random
 from soco import SoCo
 
 
@@ -37,16 +37,15 @@ class Sonos:
         time.sleep(duration)
         self.player.stop()
         print("Stopped TTS")
+        pause = True
 
         if player_source == "QUEUE":
             if current_transport_info in ["PLAYING", "PAUSED_PLAYBACK"]:
                 self.player.play_from_queue(0)
                 self.player.seek(current_position)
-
                 pause = (current_transport_info == "PAUSED_PLAYBACK")
         else:
             self.player.play_uri(current_uri)
-
             pause = (current_transport_info == "STOPPED")
 
         if pause:
@@ -55,21 +54,19 @@ class Sonos:
         else:
             print("Playing from %s again" % player_source)
 
+    def listen(self, playlist='random'):
+        print('Listening to {}'.format(playlist))
+        self.player.stop()
+        self.player.clear_queue()
+        favorites = self.player.get_sonos_playlists()
+        if playlist != 'random':
+            for track in range(len(favorites)):
+                name = str(favorites[track])
+                if playlist in name:
+                    self.player.add_uri_to_queue(favorites[track].resources[0].uri)
+                    self.player.play()
 
-if __name__ == '__main__':
-    sonos = Sonos('192.168.50.59')
-    # sonos.player.play_uri('x-file-cifs://MSI/Music/Oceans.mp3')
-    # print(sonos.player.play_uri('x-sonos-spotify:spotify%3atrack%3a6kwqwIUxDK84yXyfL7jvGf?sid=12&flags=8224&sn=1'))
-    playlist = {}
-    song = ''
-    sonos.player.stop()
-    current = sonos.player.get_current_track_info()
-    song = current['title']
-    # for i in range(4):
-    #     if song not in playlist:
-    #         playlist.update({current['title']: current['uri']})
-    #         sonos.player.next()
-    #         current = sonos.player.get_current_track_info()
-    #         song = current['title']
-    #
-    print(playlist)
+        else:
+            random_playlist = random.choice(favorites)
+            self.player.add_uri_to_queue(random_playlist.resources[0].uri)
+            self.player.play()

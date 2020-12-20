@@ -365,7 +365,7 @@ class Commands:
                     data = json.loads(data)
                     title = data['title']
                     body = data['body']
-                    self.third_party['push'].send('push', title=title, body=body)
+                    self.third_party['push'].push.push_note(title=title, body=body)
 
             # ***************** Broadcast commands *****************
             elif command.command_type == 'broadcast':

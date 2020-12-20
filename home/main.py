@@ -42,6 +42,7 @@ class Home(Main):
 
         super(Home, self).initialize()  # Call parent class
         self.initialize_third_party()  # Initialize third-party APIs
+        self.third_party['push'].commands = self.commands   # Give access to commands class to PushBullet API
         for room in self.rooms:  # Iterate through each room
             self.rooms[room].third_party = self.third_party  # Provide access to 3rd party apps to rooms
             self.rooms[room].name = room  # Name class as room name for logs
@@ -51,21 +52,17 @@ class Home(Main):
         """Initialize third-party applications."""
 
         self.third_party.update({'hue': HueAPI(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
-        self.third_party.update({'push': Push(key='o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
+        self.third_party.update({'push': Push('o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
         self.third_party.update({'sonos': Sonos('192.168.50.59')})
 
     def run(self):
         """Run all sub-threads."""
-
         super(Home, self).run()  # Call parent class
+        self.third_party['sonos'].listen('LoFi Hip Hop')
+        self.third_party['sonos'].player.volume = 20
+        Thread(target=self.third_party['push'].listen()).start() # Listen for commands from PushBullet API - home lvl
         for room in self.rooms:  # Begin room sub-threads
             Thread(target=self.rooms[room].run).start()
-
-        while True:  # Main tasks for room
-            if 0 not in self.tasks:
-                # self.tasks.update({0: Thread(target=self.get_status)})
-                # self.tasks[0].start()
-                pass
 
 
 if __name__ == '__main__':

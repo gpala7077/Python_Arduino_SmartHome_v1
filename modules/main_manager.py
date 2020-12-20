@@ -48,7 +48,7 @@ class Main:
 
     def initialize(self):
         """Start up program"""
-        print('Initializing {}'.format(self.name))
+        print('Initializing {} | {}'.format(self.__class__.__name__, self.name))
         self.mosquitto.host_ip = self.data['mqtt_data']['configuration']['mqtt_value']  # Get broker ip address
         self.commands.data = self.data  # commands data
         self.commands.mosquitto = self.mosquitto  # Give command access to MQTT
@@ -58,4 +58,4 @@ class Main:
 
     def run(self):
         """Start main loop"""
-        print('Starting Main Loop for {}'.format(self.name))
+        print('Starting Main Loop for {} | {}'.format(self.__class__.__name__, self.name))

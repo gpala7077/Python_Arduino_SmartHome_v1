@@ -43,7 +43,7 @@ class Room(Main):
         for thing in self.things:  # Initialize all things
             self.things[thing].name = thing
             print(self.things[thing].initialize())
-        return '{} initialized\n'.format(self.name)
+        return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 
     def current_status(self):
         """Get current room status."""
@@ -101,7 +101,7 @@ class Thing(Main):
         self.sensors = self.mosquitto.get_sensors  # reference get_sensors
         self.new_status = self.mosquitto.get_status
 
-        return '{} initialized\n'.format(self.name)
+        return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 
     def get_status(self, current=True):
         """Returns current or last known status."""

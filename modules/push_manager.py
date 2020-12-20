@@ -1,49 +1,29 @@
-import requests
-import json
-
-import ssl
-import asyncio
-import websockets
+from pushbullet import Listener, Pushbullet
 
 
 class Push:
     def __init__(self, key):
         self.key = key
+        self.push = Pushbullet(key)
+        self.commands = None
 
-    def send(self, api_call, title=None, body=None, numbers=None):
-        api = {
+    def on_push(self, data):
+        print("Received data:\n{}".format(data))
+        latest_push = self.push.get_pushes()[0]
+        if 'title' not in latest_push:
 
-            'push': {
-                'base': 'https://api.pushbullet.com/v2/pushes',
-                'data': {"type": "note", "title": title, "body": body}},
+            self.push.push_note('SmartHome Commands', self.commands.execute(latest_push['body']))
 
-            'text': {
-                'base': 'https://api.pushbullet.com/v2/texts',
-                'data': {"data": {"addresses": numbers, "message": body, "target_device_iden": "uju1rIlCOPIsjvhLqu6d0S"}}}
-        }
-        resp = requests.post(api[api_call]['base'],
-                             data=json.dumps(api[api_call]['data']),
-                             headers={'Authorization': 'Bearer ' + self.key,
-                                      'Content-Type': 'application/json'})
-        if resp.status_code != 200:
-            raise Exception('Error', resp.status_code)
-        else:
-            return resp
+    def listen(self):
+        s = Listener(account=self.push, on_push=self.on_push, http_proxy_host=None, http_proxy_port=None)
+        try:
+            s.run_forever()
+        except KeyboardInterrupt:
+            s.close()
 
-    def get(self, api_call):
-        api = {
-            'devices': {
-                'base': 'https://api.pushbullet.com/v2/devices',
-                'data': {"data": {"addresses": None, "message": 'body'}}
-            }
-        }
+    def delete_pushes(self):
+        return self.push.delete_pushes()
 
-        resp = requests.post(api[api_call]['base'],
-                             data=json.dumps(api[api_call]['data']),
-                             headers={'Authorization': 'Bearer ' + self.key,
-                                      'Content-Type': 'application/json'})
-        if resp.status_code != 200:
-            raise Exception('Error', resp.status_code)
-        else:
-            return resp
 
+if __name__ == '__main__':
+    push = Push('o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')
