@@ -1,6 +1,7 @@
 import time
 import random
 from soco import SoCo
+# Credit comes from tutorial: https://specman1.wordpress.com/2016/07/27/your-sonos-can-speak-to-you-tts-and-its-easy/
 
 
 def calc_duration(message):
@@ -8,10 +9,13 @@ def calc_duration(message):
 
 
 class Sonos:
+    """SoCo class container."""
+
     def __init__(self, ip_address):
         self.player = SoCo(ip_address)
 
     def tts(self, message):
+        """Sends and plays string message using google's tts"""
         locale = "en-US"
         self.player.play_uri("x-rincon-mp3radio://translate.google.com/translate_tts?ie=UTF-8&tl=%s&client=tw-ob&q=%s" %
                              (locale, message))

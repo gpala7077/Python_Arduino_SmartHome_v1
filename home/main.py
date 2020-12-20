@@ -1,5 +1,6 @@
 from threading import Thread
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
 from modules.hue_manager import Hue
 from modules.main_manager import Main
 from modules.push_manager import Push
@@ -44,6 +45,7 @@ class Home(Main):
         self.initialize_third_party()  # Initialize third-party APIs
         self.third_party['push'].commands = self.commands   # Give access to commands class to PushBullet API
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
+        self.commands.current_status = self.current_status  # reference status to commands
         for room in self.rooms:  # Iterate through each room
             self.rooms[room].third_party = self.third_party  # Provide access to 3rd party apps to rooms
             self.rooms[room].name = room  # Name class as room name for logs
@@ -55,6 +57,23 @@ class Home(Main):
         self.third_party.update({'hue': Hue(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
         self.third_party.update({'push': Push('o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
         self.third_party.update({'sonos': Sonos('192.168.50.59')})
+
+    def current_status(self, current=False):
+        """Get current home status."""
+
+        print(
+            'Getting {} status for {} | {}'.format(['current', 'last known'][(current == False)],
+                                                   self.__class__.__name__, self.name))
+        df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])  # Create empty data frame
+
+        status = []  # Initialize empty condition list
+        with ThreadPoolExecutor() as executor:  # Begin sub-threads
+            for room in self.rooms:
+                status.append(executor.submit(self.rooms[room].current_status, current=current)) # submit to thread pool
+
+            for result in as_completed(status):  # Wait until all things have been read
+                df = df.append(result.result())
+        return df
 
     def run(self):
         """Run all sub-threads."""

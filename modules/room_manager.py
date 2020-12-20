@@ -48,7 +48,9 @@ class Room(Main):
     def current_status(self, current=False):
         """Get current room status."""
 
-        print('Getting current status for {}'.format(self.name))
+        print(
+            'Getting {} status for {} | {}'.format(['current', 'last known'][(current == False)],
+                                                   self.__class__.__name__, self.name))
         df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])  # Create empty data frame
 
         status = []  # Initialize empty condition list
@@ -105,6 +107,10 @@ class Thing(Main):
 
     def get_status(self, current=True):
         """Returns current or last known status."""
+
+        print(
+            'Getting {} status for {} | {}'.format(['current', 'last known'][(current == False)],
+                                                   self.__class__.__name__, self.name))
         if current:
             payload = 'status'  # define payload
             channel = self.data['mqtt_data']['channels_dict']['thing_commands']  # Prepare channel
