@@ -1,3 +1,4 @@
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from threading import Timer
@@ -305,13 +306,19 @@ class Commands:
             command = []
 
             for rule in data:
-                cmd = (  # Build command tuple
-                    Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_command'])).
-                            to_dict(orient='records')[0]),
+                if rule['rule_function'] != 'none':
+                    cmd = (  # Build command tuple
+                        Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_command'])).
+                                to_dict(orient='records')[0]),
 
-                    Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_function'])).
-                            to_dict(orient='records')[0])
-                )
+                        Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_function'])).
+                                to_dict(orient='records')[0])
+                    )
+                else:
+                    cmd = (  # Build command tuple
+                        Command(self.data['commands_data'].query('command_name == "{}"'.format(rule['rule_command'])).
+                                to_dict(orient='records')[0]), None)
+
                 conditions = self.data['conditions_data'].query(  # Get all condition data
                     'condition_rule_id == {}'.format(rule['rule_id'])).to_dict(orient='records')
 
@@ -350,6 +357,15 @@ class Commands:
                     num = self.data['hue_data']['hue_groups'].query('name == "{}"'.format(
                         command.command_sensor))['group_id'].tolist()[0]
                     print(self.third_party['hue'].set_group(num, command.command_value))
+
+            # ***************** PushBullet - Third Party Commands *****************
+            elif command.command_type == 'push':
+                if command.command_sensor == 'push_message':
+                    data = command.command_value.replace("'", "\"")  # Replace single for double quotes
+                    data = json.loads(data)
+                    title = data['title']
+                    body = data['body']
+                    self.third_party['push'].send('push', title=title, body=body)
 
             # ***************** Broadcast commands *****************
             elif command.command_type == 'broadcast':

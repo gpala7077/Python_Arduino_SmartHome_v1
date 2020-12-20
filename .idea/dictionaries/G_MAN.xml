@@ -5,6 +5,7 @@
       <w>mosquitto</w>
       <w>motionsense</w>
       <w>mqtt</w>
+      <w>pushbullet</w>
     </words>
   </dictionary>
 </component>
