@@ -1,6 +1,10 @@
 import requests
 import json
 
+import ssl
+import asyncio
+import websockets
+
 
 class Push:
     def __init__(self, key):
@@ -13,9 +17,9 @@ class Push:
                 'base': 'https://api.pushbullet.com/v2/pushes',
                 'data': {"type": "note", "title": title, "body": body}},
 
-            'devices': {
+            'text': {
                 'base': 'https://api.pushbullet.com/v2/texts',
-                'data': {"data": {"addresses": numbers, "message": body}}}
+                'data': {"data": {"addresses": numbers, "message": body, "target_device_iden": "uju1rIlCOPIsjvhLqu6d0S"}}}
         }
         resp = requests.post(api[api_call]['base'],
                              data=json.dumps(api[api_call]['data']),
@@ -26,9 +30,20 @@ class Push:
         else:
             return resp
 
+    def get(self, api_call):
+        api = {
+            'devices': {
+                'base': 'https://api.pushbullet.com/v2/devices',
+                'data': {"data": {"addresses": None, "message": 'body'}}
+            }
+        }
 
-if __name__ == '__main__':
-    push = Push(key='o.6uxjgUM6ci0mNODdvolcqXtGOMUFLfOG')
-    print(push.send('push', body='hello').text)
-
+        resp = requests.post(api[api_call]['base'],
+                             data=json.dumps(api[api_call]['data']),
+                             headers={'Authorization': 'Bearer ' + self.key,
+                                      'Content-Type': 'application/json'})
+        if resp.status_code != 200:
+            raise Exception('Error', resp.status_code)
+        else:
+            return resp
 

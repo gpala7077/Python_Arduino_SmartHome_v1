@@ -4,6 +4,7 @@ from modules.hue_manager import HueAPI
 from modules.main_manager import Main
 from modules.push_manager import Push
 from modules.room_manager import Room
+from modules.sonos_manager import Sonos
 
 credentials = {
     'username': 'self',
@@ -49,13 +50,9 @@ class Home(Main):
     def initialize_third_party(self):  # Initialize 3rd party apps
         """Initialize third-party applications."""
 
-        self.third_party.update(
-            {'hue': HueAPI(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')}
-        )
-
-        self.third_party.update(
-            {'push': Push(key='o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')}
-        )
+        self.third_party.update({'hue': HueAPI(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
+        self.third_party.update({'push': Push(key='o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
+        self.third_party.update({'sonos': Sonos('192.168.50.59')})
 
     def run(self):
         """Run all sub-threads."""
