@@ -45,18 +45,18 @@ class Room(Main):
             print(self.things[thing].initialize())
         return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 
-    def current_status(self, current=False):
+    def current_status(self, current=True):
         """Get current room status."""
 
         print(
-            'Getting {} status for {} | {}'.format(['current', 'last known'][(current == False)],
+            'Getting {} status for {} | {}'.format(['last known', 'current'][(current == True)],
                                                    self.__class__.__name__, self.name))
         df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])  # Create empty data frame
 
         status = []  # Initialize empty condition list
         with ThreadPoolExecutor() as executor:  # Begin sub-threads
             for thing in self.things:
-                status.append(executor.submit(self.things[thing].current_status, current=current))  # submit to thread pool
+                status.append(executor.submit(self.things[thing].current_status, current=current))  # submit to pool
 
             for result in as_completed(status):  # Wait until all things have been read
                 df = df.append(result.result())
@@ -109,7 +109,7 @@ class Thing(Main):
         """Returns current or last known status."""
 
         print(
-            'Getting {} status for {} | {}'.format(['current', 'last known'][(current == False)],
+            'Getting {} status for {} | {}'.format(['last known', 'current'][(current == True)],
                                                    self.__class__.__name__, self.name))
         if current:
             payload = 'status'  # define payload
@@ -120,6 +120,7 @@ class Thing(Main):
             timeout = 10
             started = datetime.now()
             i = 0
+            self.mosquitto.new_status_flag = False # Reset flag
             while not self.new_status():
                 if (datetime.now() - started).total_seconds() >= timeout and i <= retry:
                     print('\nNo Response...Reattempting. Attempted {} time(s)'.format(i))
