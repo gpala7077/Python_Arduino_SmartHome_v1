@@ -70,11 +70,16 @@ class Database:
                 self.cursor.execute(query)
             self.db.commit()
 
-    def replace_data(self, table, data):
+    def replace_insert_data(self, query_type, table, data):
         columns = list(data.to_dict(orient='records')[0].keys())
         columns = ', '.join(columns)
 
-        sql = 'replace into {} ({}) values '.format(table, columns)
+        if query_type == 'replace':
+            sql = 'replace into {} ({}) values '.format(table, columns)
+
+        elif query_type == 'insert':
+            sql = 'insert into {} ({}) values '.format(table, columns)
+
         values = []
 
         for row in data.to_dict(orient='records'):
