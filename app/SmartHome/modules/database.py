@@ -127,7 +127,7 @@ class Manage_Rooms(Manage_Table):
         self.data = Pandas(self.db.query('select * from home_rooms'))
 
     def save_new_data(self):
-        print(self.db.replace_insert_data('home_rooms', self.data.df))
+        print(self.db.replace_insert_data('replace', 'home_rooms', self.data.df))
 
     def delete_data(self):
         for selected in self.table.selectionModel().selectedRows():
@@ -154,7 +154,7 @@ class Manage_Things(Manage_Table):
         self.data = Pandas(self.db.query('select * from home_things'))
 
     def save_new_data(self):
-        print(self.db.replace_insert_data('home_things', self.data.df))
+        print(self.db.replace_insert_data('replace', 'home_things', self.data.df))
 
     def delete_data(self):
         for selected in self.table.selectionModel().selectedRows():
@@ -181,7 +181,7 @@ class Manage_Commands(Manage_Table):
         self.data = Pandas(self.db.query('select * from commands'))
 
     def save_new_data(self):
-        print(self.db.replace_insert_data('commands', self.data.df))
+        print(self.db.replace_insert_data('replace', 'commands', self.data.df))
 
     def delete_data(self):
         for selected in self.table.selectionModel().selectedRows():
