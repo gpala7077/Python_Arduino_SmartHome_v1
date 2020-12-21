@@ -154,7 +154,7 @@ class MCU:
                 for val in value:  # iterate through read values
                     results['sensor_value'].append(value[val])  # store sensor value
                     results['sensor_name'].append(val + num)  # rename sensor
-                    results['sensor_type'].append(current_row['pin_sensor'])  # restate sensor type
+                    results['sensor_type'].append(val)  # restate sensor type
             else:
                 results['sensor_value'].append(value)  # Add sensor value
                 results['sensor_name'].append(current_row['pin_name'])  # Add sensor name
