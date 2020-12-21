@@ -1,3 +1,4 @@
+from datetime import datetime
 from threading import Thread, Timer, Event
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
@@ -81,7 +82,10 @@ class Home(Main):
             return
         else:
             Timer(repeat, self.status_interval, args=[repeat, quit_event]).start()
-            self.current_status(current=True)
+            data = self.current_status(current=True)
+            timestamp = [datetime.now()] * data.shape[0]
+            data['history_timestamp'] = timestamp
+            self.db.replace_insert_data('insert', 'history', data)
 
     def run(self):
         """Run all sub-threads."""

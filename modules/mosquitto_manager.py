@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from threading import Thread
 
 import paho.mqtt.client as mqtt
@@ -10,6 +11,7 @@ from modules.miscellaneous import Queue
 class Mosquitto:
     def __init__(self):
         self.client = mqtt.Client()
+        self.db = None
         self.host_ip = None
         self.messages = Queue('FIFO')
         self.interrupts = Queue('LIFO')
@@ -35,7 +37,12 @@ class Mosquitto:
 
     def process_interrupt(self):
         """Process interrupt."""
-        print(self.commands.execute(self.interrupts.get()))  # Execute command based on the latest interrupt
+        data = self.interrupts.get()
+        print(self.commands.execute(data))  # Execute command based on the latest interrupt
+
+        timestamp = [datetime.now()] * data.shape[0]  # Add timestamp
+        data['history_timestamp'] = timestamp  # Create new column with timestamp
+        self.db.replace_insert_data('insert', 'history', data)  # Add data to history table
 
     def process_message(self):
         """Process Message"""

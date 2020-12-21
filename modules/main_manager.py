@@ -53,6 +53,7 @@ class Main:
         self.commands.data = self.data  # commands data
         self.commands.mosquitto = self.mosquitto  # Give command access to MQTT
         self.mosquitto.commands = self.commands  # Give MQTT access to commands
+        self.mosquitto.db = self.db
         print(self.mosquitto.connect())  # Log info
         print(self.mosquitto.listen(self.data['mqtt_data']['listen']))  # Log info
 
