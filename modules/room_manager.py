@@ -30,6 +30,7 @@ class Room(Main):
 
     def __init__(self, credentials, room_id):
         super().__init__(credentials)  # Call super class
+        self.role = None
         self.data = self.db.get_room_data(room_id)  # Get room data from db
         self.things = {thing['thing_name']: Thing(credentials, thing['thing_id'])  # Create dictionary of Things
                        for thing in self.data['thing_data'].to_dict(orient='records')}
@@ -38,6 +39,7 @@ class Room(Main):
         """Initialize Room."""
 
         super(Room, self).initialize()  # Call super class
+        self.mosquitto.role = self.role
         self.commands.current_status = self.current_status  # reference status to commands
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
         for thing in self.things:  # Initialize all things
@@ -93,6 +95,7 @@ class Thing(Main):
 
     def __init__(self, credentials, thing_id):
         super().__init__(credentials)  # Call super class
+        self.role = None
         self.data = self.db.get_thing_data(thing_id, 'receiver')  # get thing receiver data
         self.new_status = None
 
@@ -102,6 +105,7 @@ class Thing(Main):
         super(Thing, self).initialize()  # Call super class
         self.sensors = self.mosquitto.get_sensors  # reference get_sensors
         self.new_status = self.mosquitto.new_status
+        self.mosquitto.role = self.role
 
         return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 

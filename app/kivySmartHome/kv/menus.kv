@@ -1,0 +1,54 @@
+<Main_Menu>:
+    BoxLayout:
+        orientation: "vertical"
+
+        MDToolbar:
+            title: "Main Menu"
+
+        MDFloatLayout:
+            MDGridLayout:
+                cols:1
+                adaptive_height: True
+                adaptive_width: True
+                pos_hint: {'center_x': .5,'center_y': .5}
+
+                MDRectangleFlatButton:
+                    text: "Smart Home Control"
+                    on_release: app.transition_screen("home_control", 'left')
+
+                MDRectangleFlatButton:
+                    text: "Smart Home Management"
+                    on_release: app.transition_screen("home_management",'left')
+
+
+<Home_Control>:
+    BoxLayout:
+        orientation: "vertical"
+
+        MDToolbar:
+            title: "Smart Home Control"
+            left_action_items: [["menu", lambda x: app.transition_screen('main_menu', 'right')]]
+
+        MDFloatLayout:
+            MDGridLayout:
+                cols:1
+                adaptive_height: True
+                adaptive_width: True
+                pos_hint: {'center_x': .5,'center_y': .5}
+
+
+<Home_Management>:
+    BoxLayout:
+        orientation: "vertical"
+
+        MDToolbar:
+            title: "Smart Home Management"
+            left_action_items: [["menu", lambda x: app.transition_screen('main_menu', 'right')]]
+
+        MDFloatLayout:
+            MDGridLayout:
+                cols:1
+                adaptive_height: True
+                adaptive_width: True
+                pos_hint: {'center_x': .5,'center_y': .5}
+

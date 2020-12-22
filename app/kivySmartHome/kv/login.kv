@@ -1,0 +1,36 @@
+<Login>:
+    MDFloatLayout:
+        radius: [25, 0, 0, 0]
+
+        MDGridLayout:
+            cols:1
+            adaptive_height: True
+            adaptive_width: True
+            pos_hint: {'center_x': .5,'center_y': .5}
+
+            MDTextField:
+                id: usern
+                hint_text: "Username"
+                helper_text: "Enter Username"
+                helper_text_mode: "on_focus"
+
+            MDTextField:
+                id: passw
+                hint_text: "Password"
+                helper_text: "Enter Password"
+                password: True
+
+            MDGridLayout:
+                cols:2
+                adaptive_height: True
+                adaptive_width: True
+
+                MDRectangleFlatButton:
+                    text: "Cancel"
+                    on_release:
+                        app.root.current = root.cancel()
+
+                MDRectangleFlatButton:
+                    text: "Submit"
+                    on_release: app.check_credentials(usern.text, passw.text)
+

@@ -181,7 +181,9 @@ class Database:
                                   'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
                                   [room_id, 2]).to_dict(orient='records')
 
-        group_data = self.query('select * from home_groups')
+        group_data = self.query('select * from home_groups where group_id '
+                                'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
+                                [room_id, 2]).to_dict(orient='records')
 
         # Get all mosquitto channels
         channels = self.query('select * from mosquitto_channels')
@@ -266,9 +268,13 @@ class Database:
             'listen': listen
         }
 
-        commands_data = self.query('select * from commands')
+        commands_data = self.query('select * from commands where info_id = %s and info_level = %s', [1, 1])
         rules = self.query('select * from rules')
-        group_data = self.query('select * from home_groups')
+
+        group_data = self.query('select * from home_groups where group_id '
+                                'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
+                                [1, 1]).to_dict(orient='records')
+
         hue_groups = self.query('select group_id, name from hue_groups')
 
         group_id = hue_groups.query('name == "{}"'.format('Home'))['group_id'].tolist()[0]

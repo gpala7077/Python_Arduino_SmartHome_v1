@@ -1,0 +1,58 @@
+---
+title: "ShinySmartHome"
+author: "Gerardo Palacios"
+date: "12/21/2020"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(RMariaDB)
+library(lubridate)
+library(ggplot2)
+library(odbc)
+library(shiny)
+```
+
+
+```{r data, include=FALSE}
+con <- dbConnect(
+  drv = RMariaDB::MariaDB(), 
+  username = 'self',
+  password = 'password', 
+  host = '192.168.50.173', 
+  port = 3306
+)
+dbSendQuery(con, 'use smart_home')
+```
+
+## Gerardo's Awesome DIY sensors
+
+
+
+```{r eruptions, echo=FALSE}
+
+sensor_types <- dbSendQuery(con, 'select distinct sensor_type from history')
+sensor_types <- dbFetch(sensor_types)
+
+inputPanel(
+  selectInput("sensor_type", label = "Type of Sensor",
+              choices = sensor_types$sensor_type, selected = 'motion')
+)
+
+
+renderPlot({
+
+  query = paste('select * from history where sensor_type = ','"',input$sensor_type,'"',sep = '')
+  print(query)
+
+
+data <- dbSendQuery(con,query)
+data <- dbFetch(data)
+data$history_timestamp <- as_datetime(data$history_timestamp)
+   ggplot(data = data,aes(x = history_timestamp, y = sensor_value, color=sensor_name)) + geom_line()
+  
+})
+```
+

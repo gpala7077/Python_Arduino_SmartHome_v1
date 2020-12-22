@@ -13,6 +13,7 @@ class Mosquitto:
         self.client = mqtt.Client()
         self.db = None
         self.host_ip = None
+        self.role = None
         self.messages = Queue('FIFO')
         self.interrupts = Queue('LIFO')
         self.commands = None
@@ -48,21 +49,22 @@ class Mosquitto:
         """Process Message"""
         topic, msg = self.messages.get()  # Get topic and message
 
-        if 'interrupt' in topic:  # If interrupt
-            msg = msg.replace("'", "\"")  # Replace single for double quotes
-            msg = json.loads(msg)  # convert string to dictionary
-            msg = pd.DataFrame.from_dict(msg)  # Convert dictionary to data frame
-            self.interrupts.add(msg)  # Add data frame to interrupt queue
-            self.process_interrupt()  # Process interrupt
+        if self.role == 'executor':
+            if 'interrupt' in topic:  # If interrupt
+                msg = msg.replace("'", "\"")  # Replace single for double quotes
+                msg = json.loads(msg)  # convert string to dictionary
+                msg = pd.DataFrame.from_dict(msg)  # Convert dictionary to data frame
+                self.interrupts.add(msg)  # Add data frame to interrupt queue
+                self.process_interrupt()  # Process interrupt
+
+            elif 'commands' in topic:  # If command
+                self.commands.execute(msg)
 
         elif 'info' in topic:  # If info
             self.new_status_flag = True
             msg = msg.replace("'", "\"")  # Replace single for double quotes
             msg = json.loads(msg)  # convert to dictionary
             self.sensors = pd.DataFrame.from_dict(msg)  # Convert to data frame and replace sensors
-
-        elif 'commands' in topic:  # If command
-            self.commands.execute(msg)
 
     def get_sensors(self):
         """Return sensors data frame"""

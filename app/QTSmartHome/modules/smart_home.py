@@ -5,8 +5,8 @@ import pandas as pd
 from PySide2.QtCore import QThread
 from PySide2.QtWidgets import QGridLayout, QLabel, QPushButton, QComboBox, QLineEdit, QTableView
 
-from app.SmartHome.modules.base import Window
-from app.SmartHome.modules.database import Pandas
+from app.QTSmartHome.modules.base import Window
+from app.QTSmartHome.modules.database import Pandas
 from modules.commands_manager import Commands
 from modules.mosquitto_manager import Mosquitto
 

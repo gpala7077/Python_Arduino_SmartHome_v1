@@ -326,10 +326,13 @@ class Commands:
 
         return command
 
-    def execute(self, command):
+    def execute(self, command, command_value=None):
         """Execute command."""
 
         command = self.check_command(command)  # Check type of command
+        if command_value is not None:                   # Force replace command value if requested
+            command.command_value = command_value
+
         print(command)  # Print the canonical string representation
 
         if isinstance(command, Command):  # If object is of type Command

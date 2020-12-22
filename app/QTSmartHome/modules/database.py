@@ -5,7 +5,7 @@ import pandas as pd
 from PySide2.QtCore import QAbstractTableModel, Qt
 from PySide2.QtWidgets import QPushButton, QTableView
 
-from app.SmartHome.modules.base import Window
+from app.QTSmartHome.modules.base import Window
 
 
 class Pandas(QAbstractTableModel):

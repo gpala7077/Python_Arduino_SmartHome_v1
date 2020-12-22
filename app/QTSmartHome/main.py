@@ -1,11 +1,10 @@
 import sys
-
 import pandas as pd
 from PySide2.QtWidgets import QApplication
 from mysql.connector import Error
 
-from app.SmartHome.modules.database import Database_Management, Manage_Rooms, Manage_Things, Manage_Commands
-from app.SmartHome.modules.smart_home import Login, Main_Menu, Smart_Home, Rooms, Room
+from app.QTSmartHome.modules.database import Database_Management, Manage_Rooms, Manage_Things, Manage_Commands
+from app.QTSmartHome.modules.smart_home import Login, Main_Menu, Smart_Home, Rooms, Room
 from modules.database_manager import Database
 
 
@@ -26,7 +25,7 @@ class Navigator:
         self.screens = {'Main_Menu': Main_Menu('Main Menu'),
                         'Smart_Home': Smart_Home('Smart Home'),
                         'Rooms': Rooms('Available Rooms', self.db),
-                        'Database_Management': Database_Management('SmartHome Database Management'),
+                        'Database_Management': Database_Management('QTSmartHome Database Management'),
                         'Manage_Rooms': Manage_Rooms('Manage Rooms', self.db),
                         'Manage_Things': Manage_Things('Manage Things', self.db),
                         'Manage_Commands': Manage_Commands('Manage Commands', self.db)
