@@ -37,12 +37,13 @@ class Home_Control(Screen):
 
         float_layout = MDFloatLayout()
 
-        float_layout.add_widget(self.current_light_status(.1, .6))
-        float_layout.add_widget(self.current_door_status(.1, .1))
-        float_layout.add_widget(self.available_rooms(.9, .1))
-        float_layout.add_widget(self.current_humidity_status(.5, .1))
-        float_layout.add_widget(self.current_temperature_status(.5, .6))
+        float_layout.add_widget(self.available_rooms(.7, 0))
+        float_layout.add_widget(self.current_light_status(.1, .7))
         float_layout.add_widget(self.current_hue(0, .5))
+
+        float_layout.add_widget(self.current_door_status(.7, .7))
+        float_layout.add_widget(self.current_humidity_status(.1, .3))
+        float_layout.add_widget(self.current_temperature_status(.7, .3))
 
         self.add_widget(float_layout)
 
@@ -107,8 +108,7 @@ class Home_Control(Screen):
         grid_layout.add_widget(MDLabel(text='Current Temperature'))
 
         for sensor in self.status.query('sensor_type == "temperature"').to_dict(orient='records'):
-
-            label1 = MDLabel(text='{sensor_name} {sensor_value} degrees Celsius'.format(**sensor))
+            label1 = MDLabel(text='{sensor_name} {sensor_value}'.format(**sensor))
 
             grid_layout.add_widget(label1)
 
@@ -118,11 +118,10 @@ class Home_Control(Screen):
         grid_layout = MDGridLayout(
             cols=1, adaptive_height=True, pos_hint={'x': x, 'y': y}
         )
-        grid_layout.add_widget(MDLabel(text='Current Temperature'))
+        grid_layout.add_widget(MDLabel(text='Current Humidity'))
 
         for sensor in self.status.query('sensor_type == "humidity"').to_dict(orient='records'):
-
-            label1 = MDLabel(text='{sensor_name} {sensor_value} some humidity unit'.format(**sensor))
+            label1 = MDLabel(text='{sensor_name} {sensor_value}'.format(**sensor))
 
             grid_layout.add_widget(label1)
 
@@ -134,7 +133,7 @@ class Home_Control(Screen):
         )
         grid_layout.add_widget(MDLabel(text='Home Hue Brightness'))
         label1 = MDSlider(min=0, max=255)
-        label1.bind(on_touch_up=self.hue_callback)
+        label1.bind(on_touch_up=self.commands_callback)
         grid_layout.add_widget(label1)
 
         return grid_layout
@@ -142,11 +141,12 @@ class Home_Control(Screen):
     def available_rooms_callback(self, instance):
         print(instance.text)
 
-    def commands_callback(self, checkbox, value):
-        print(checkbox.id, value)
-
-    def hue_callback(self, checkbox, value):
-        self.home.commands.execute('hue_lights_on', '{}"bri": {}, "on": true{}'.format("{", int(checkbox.value),"}"))
+    def commands_callback(self, instance, value):
+        if isinstance(instance, MDSlider) and instance.active:
+            self.home.commands.execute('hue_lights_on',
+                                       '{}"bri": {}, "on": true{}'.format("{", int(instance.value), "}"))
+        elif isinstance(instance, MDSwitch):
+            print(instance.active)
 
 
 class Home_Management(Screen):

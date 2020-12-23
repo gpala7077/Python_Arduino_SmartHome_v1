@@ -1,4 +1,5 @@
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from threading import Timer
@@ -20,8 +21,11 @@ class Action(Timer):
 
     """
 
-    def __init__(self, command, interval, fn):
-        super().__init__(interval, fn, args=[command])  # call super class
+    def __init__(self, command, interval, fn, args=None):
+        if args is None:
+            args = []
+        command_arguments = [command] + args
+        super().__init__(interval, fn, args=[command_arguments])  # call super class
         self.start()  # Start timer
 
 
@@ -326,11 +330,11 @@ class Commands:
 
         return command
 
-    def execute(self, command, command_value=None):
+    def execute(self, command, command_value=None, args=None):
         """Execute command."""
 
         command = self.check_command(command)  # Check type of command
-        if command_value is not None:                   # Force replace command value if requested
+        if command_value is not None:  # Force replace command value if requested
             command.command_value = command_value
 
         print(command)  # Print the canonical string representation
@@ -347,6 +351,52 @@ class Commands:
             elif command.command_type == 'read':
                 result = self.r_pi_read_write(command.get_query())
                 self.mosquitto.broadcast(self.data['mqtt_data']['channels_dict']['thing_info'], result)
+
+            # ***************** HVAC Commands *****************
+            elif command.command_type == 'HVAC' and (command.command_sensor == 'heat' or
+                                                     command.command_sensor == 'cool' or
+                                                     command.command_sensor == 'off'):
+                if command.command_type in self.timers:
+                    self.timers[command.command_type].cancel()
+                    self.timers.pop(command.command_type)
+
+                command_sequence = {
+                    'heat': ('AC_off', 'fan_off', 'heat_on', 'fan_on'),
+                    'cool': ('heat_off', 'fan_off', 'AC_on', 'fan_on'),
+                    'off':  ('Ac_off', 'heat_off', 'fan_off')
+                }
+                for i in range(len(command_sequence[command.command_sensor])):
+                    print(self.execute('room_command', command_sequence[i]))
+
+                    sleep_sequence = {
+                        'heat': (1, 30)[i % 2 == 0],
+                        'cool': (1, 30)[i % 2 == 0],
+                        'off': (1, 30)[i % 2 == 0]
+                    }
+
+                    print('sleeping for {} seconds(s)'.format(sleep_sequence[command.command_sensor]))
+                    time.sleep(sleep_sequence[command.command_sensor])
+                    args = [command.command_value, command.command_sensor] # override command_value, additional argument
+                    self.timers.update(
+                        {command.command_type: Action('check_temperature', 10, self.execute, args=args)})
+
+            elif command.command_type == 'HVAC' and command.command_type == 'check':
+                current_temperature = self.current_status().query('sensor_type=="temperature"')  # Get all temp readings
+                current_temperature = current_temperature['sensor_value'].mean()                # Calculate average
+                current_temperature = (current_temperature * 1.8) + 32          # Convert to F, comment out for Celcius
+
+                if \
+                        (args == 'cool' and current_temperature <= command.command_value) or \
+                        (args == 'heat' and current_temperature >= command.command_value):
+
+                    print('Requested temperature reached!')
+                    print(self.execute('turn_off_HVAC'))
+
+                else:
+                    self.timers.pop(command.command_type)
+                    args = [command.command_value, args]   # override command_value, additional argument
+                    self.timers.update(
+                        {command.command_type: Action('check_temperature', 10, self.execute, args=args)})
 
             # ***************** Phillips Hue - Third Party Commands *****************
             elif command.command_type == 'hue':
@@ -415,7 +465,7 @@ class Commands:
             return '{} | Command executed successfully'.format(command)
 
         elif len(command) > 0 and (command, list) and isinstance(command[0], Rule):
-            status = self.current_status(current=False) # True for current status, False for last known status.
+            status = self.current_status(current=False)  # True for current status, False for last known status.
             check_rules = []  # Initialize empty condition list
             results = []  # Initialize empty result list
 
