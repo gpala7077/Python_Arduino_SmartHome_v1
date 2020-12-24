@@ -9,7 +9,9 @@ credentials = {
     'password': 'password',
     'database': 'smart_home',
     'host': '192.168.50.173'}
+
 thing_id = sys.argv[1]
+# thing_id = 1
 
 
 class Thing_Main(Main):
@@ -34,12 +36,14 @@ class Thing_Main(Main):
 
     def __init__(self, credentials, thing_id):
         super().__init__(credentials)  # Call super class
+        self.role = 'executor'
         self.data = self.db.get_thing_data(thing_id=thing_id, role='emitter')  # Get thing data
         self.r_pi = MCU(self.data)  # Initialize raspberry pi
 
     def initialize(self):
         """Initialize Raspberry pi"""
         super(Thing_Main, self).initialize()  # Call super class
+        self.mosquitto.role = self.role
         self.commands.r_pi_read_write = self.r_pi.read_write  # Pass read/write to commands
         self.interrupts = self.r_pi.interrupts  # Pass interrupts to main
         self.r_pi.process_interrupt = self.process_interrupt  # Pass function to RPI

@@ -48,7 +48,6 @@ class Mosquitto:
     def process_message(self):
         """Process Message"""
         topic, msg = self.messages.get()  # Get topic and message
-
         if self.role == 'executor':
             if 'interrupt' in topic:  # If interrupt
                 msg = msg.replace("'", "\"")  # Replace single for double quotes
