@@ -7,25 +7,6 @@ from threading import Timer, Thread
 import pandas as pd
 
 
-class Action(Timer):
-    """Represents a delayed action on a timer.
-
-    Parameters
-    ----------
-    command : str
-        command to run
-    interval : int
-        Number of seconds before command is run
-    fn: function
-        Function to run command. Typically command.execute()
-
-    """
-
-    def __init__(self, command, interval, fn):
-        super().__init__(interval, fn, args=[command])  # call super class
-        self.start()  # Start timer
-
-
 class Condition:
     """Represents a single condition to a rule.
 
@@ -266,8 +247,8 @@ class Commands:
     third_party : dict of objects
         Dictionary of Third-party API objects
 
-    timers : dict of Actions
-        Dictionary of active rules and actions.
+    timers : dict of Timers
+        Dictionary of active rules and Timers.
 
     """
 
