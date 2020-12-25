@@ -354,24 +354,23 @@ class Commands:
                 result = self.r_pi_read_write(command.get_query())
                 self.mosquitto.broadcast(self.data['mqtt_data']['channels_dict']['thing_info'], result)
 
-            if 'HVAC' in command.command_sensor:
-                time.sleep(10)
-
             # ***************** HVAC Commands *****************
             elif command.command_type == 'HVAC' and (command.command_sensor == 'heat' or
                                                      command.command_sensor == 'cool' or
                                                      command.command_sensor == 'off'):
-                if command.command_type in self.timers:
-                    self.timers[command.command_type].cancel()
-                    self.timers.pop(command.command_type)
-
                 command_sequence = {
                     'heat': ('AC_off', 'fan_off', 'heat_on', 'fan_on'),
                     'cool': ('heat_off', 'fan_off', 'AC_on', 'fan_on'),
                     'off': ('AC_off', 'heat_off', 'fan_off')
                 }
-                for i in range(len(command_sequence[command.command_sensor])):
-                    self.execute('room_command', command_sequence[command.command_sensor][i])
+                i = 0
+                started = datetime.now()
+                wait_interval = 10
+                while i < len(command_sequence[command.command_sensor]):
+                    if (datetime.now() - started).total_seconds() >= wait_interval:
+                        print(self.execute('room_command', command_sequence[command.command_sensor][i]))
+                        started = datetime.now()
+                        i += 1
 
                 args = ['check_temperature', command.command_value,
                         command.command_sensor]  # override command_value, additional argument

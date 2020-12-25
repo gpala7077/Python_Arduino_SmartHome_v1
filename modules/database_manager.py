@@ -195,7 +195,6 @@ class Database:
 
         listen += channels.query('channel_name == "room_commands"')['channel_broadcast'].tolist()
 
-        # Create receiving listening channels per each thing
         l1 = channels.query('channel_name=="thing_interrupt"')
         b1 = channels.query('channel_name=="thing_commands"')
         things = {}
