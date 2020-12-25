@@ -1,8 +1,6 @@
-import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-
-from threading import Thread, Timer, Event
+from threading import Thread
 
 import pandas as pd
 

@@ -1,6 +1,9 @@
-import time
 import random
+import time
+
 from soco import SoCo
+
+
 # Credit comes from tutorial: https://specman1.wordpress.com/2016/07/27/your-sonos-can-speak-to-you-tts-and-its-easy/
 
 

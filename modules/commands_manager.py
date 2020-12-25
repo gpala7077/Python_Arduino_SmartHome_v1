@@ -1,8 +1,7 @@
 import json
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from threading import Timer, Thread
+from threading import Timer
 
 import pandas as pd
 
@@ -356,7 +355,7 @@ class Commands:
                 args = ['check_temperature', command.command_value,
                         command.command_sensor]  # override command_value, additional argument
                 self.timers.update(
-                    {command.command_type: Timer(interval=10, function=self.execute, args=args)})
+                    {command.command_type: Timer(interval=60 * 5, function=self.execute, args=args)})
                 self.timers[command.command_type].start()
 
             elif command.command_type == 'HVAC' and command.command_sensor == 'check':
@@ -366,7 +365,7 @@ class Commands:
 
                 if \
                         (args == 'cool' and current_temperature <= int(command.command_value)) or \
-                                (args == 'heat' and current_temperature >= int(command.command_value)):
+                        (args == 'heat' and current_temperature >= int(command.command_value)):
 
                     print('Requested temperature reached!')
                     print(self.execute('turn_off_HVAC'))
@@ -375,7 +374,7 @@ class Commands:
                     self.timers.pop(command.command_type)
                     args = ['check_temperature', command.command_value, args]  # override command_value,
                     self.timers.update(
-                        {command.command_type: Timer(interval=10, function=self.execute, args=args)})
+                        {command.command_type: Timer(interval=60 * 5, function=self.execute, args=args)})
                     self.timers[command.command_type].start()
 
             # ***************** Phillips Hue - Third Party Commands *****************

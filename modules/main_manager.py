@@ -1,9 +1,10 @@
 import json
 
+import pandas as pd
+
 from modules.commands_manager import Commands
 from modules.database_manager import Database
 from modules.mosquitto_manager import MQTT_Client
-import pandas as pd
 
 
 class Main:
