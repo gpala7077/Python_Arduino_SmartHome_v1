@@ -1,30 +1,22 @@
-import json
-from datetime import datetime
 from threading import Thread
 
 import paho.mqtt.client as mqtt
-import pandas as pd
 
 from modules.miscellaneous import Queue
 
 
-class Mosquitto:
+class MQTT_Client:
     def __init__(self):
-        self.client = mqtt.Client()
-        self.db = None
         self.host_ip = None
-        self.role = None
+        self.client = mqtt.Client()
         self.messages = Queue('FIFO')
-        self.interrupts = Queue('LIFO')
-        self.commands = None
-        self.sensors = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])
-        self.new_status_flag = False
+        self.process_message = None
 
     def mosquitto_callback(self, client, userdata, message):
         """Mosquitto callback function."""
 
         self.add_message(message)  # Add message to queue
-        self.process_message()  # Process message in queue
+        Thread(target=self.process_message).start() # Process message in queue as a sub-thread
 
     def add_message(self, message):
         """Adds message to queue"""
@@ -35,42 +27,6 @@ class Mosquitto:
         self.messages.add((topic, msg))  # Add to queue
 
         return 'Added message to Queue\n'
-
-    def process_interrupt(self):
-        """Process interrupt."""
-        data = self.interrupts.get()
-        print(self.commands.execute(data))  # Execute command based on the latest interrupt
-
-        timestamp = [datetime.now()] * data.shape[0]  # Add timestamp
-        data['history_timestamp'] = timestamp  # Create new column with timestamp
-        self.db.replace_insert_data('insert', 'history', data)  # Add data to history table
-
-    def process_message(self):
-        """Process Message"""
-        topic, msg = self.messages.get()  # Get topic and message
-        if self.role == 'executor':
-            if 'interrupt' in topic:  # If interrupt
-                msg = msg.replace("'", "\"")  # Replace single for double quotes
-                msg = json.loads(msg)  # convert string to dictionary
-                msg = pd.DataFrame.from_dict(msg)  # Convert dictionary to data frame
-                self.interrupts.add(msg)  # Add data frame to interrupt queue
-                self.process_interrupt()  # Process interrupt
-
-            elif 'commands' in topic:  # If command
-                self.commands.execute(msg)
-
-        elif 'info' in topic:  # If info
-            self.new_status_flag = True
-            msg = msg.replace("'", "\"")  # Replace single for double quotes
-            msg = json.loads(msg)  # convert to dictionary
-            self.sensors = pd.DataFrame.from_dict(msg)  # Convert to data frame and replace sensors
-
-    def get_sensors(self):
-        """Return sensors data frame"""
-        return self.sensors  # Return sensors Data frame
-
-    def new_status(self):
-        return self.new_status_flag
 
     def connect(self):
         """Connect to MQTT Broker and set callback."""
@@ -100,3 +56,4 @@ class Mosquitto:
             self.client.publish(channel, str(payload))  # publish mosquitto to broker
 
         return 'Payload sent\n'
+

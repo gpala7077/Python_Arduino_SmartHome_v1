@@ -1,3 +1,4 @@
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
@@ -39,7 +40,7 @@ class Room(Main):
         """Initialize Room."""
 
         super(Room, self).initialize()  # Call super class
-        self.mosquitto.role = self.role
+        # self.mosquitto.role = self.role
         self.commands.current_status = self.current_status  # reference status to commands
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
         for thing in self.things:  # Initialize all things
@@ -62,7 +63,9 @@ class Room(Main):
 
             for result in as_completed(status):  # Wait until all things have been read
                 df = df.append(result.result())
-        return df
+
+        self.status = df
+        return self.status
 
     def run(self):
         """Initialize all the things in room."""
@@ -80,9 +83,6 @@ class Thing(Main):
     data : dict
         Dictionary of pandas data frames
 
-    sensors : DataFrame
-        Pandas DataFrame of attached sensors
-
     Parameters
     ----------
     credentials : dict
@@ -95,17 +95,12 @@ class Thing(Main):
 
     def __init__(self, credentials, thing_id):
         super().__init__(credentials)  # Call super class
-        self.role = None
         self.data = self.db.get_thing_data(thing_id, 'receiver')  # get thing receiver data
-        self.new_status = None
 
     def initialize(self):
         """Initialize thing receiver"""
 
         super(Thing, self).initialize()  # Call super class
-        self.sensors = self.mosquitto.get_sensors  # reference get_sensors
-        self.new_status = self.mosquitto.new_status
-        self.mosquitto.role = self.role
 
         return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 
@@ -124,22 +119,22 @@ class Thing(Main):
             timeout = 10
             started = datetime.now()
             i = 0
-            self.mosquitto.new_status_flag = False # Reset flag
-            while not self.new_status():
+            self.new_status_flag = False
+            while not self.new_status_flag:
                 if (datetime.now() - started).total_seconds() >= timeout and i <= retry:
                     print('\nNo Response...Reattempting. Attempted {} time(s)'.format(i))
                     self.mosquitto.broadcast(channel, payload)  # Request thing status
                     started = datetime.now()
                     i += 1
                 elif i > retry:
-                    if not self.sensors().empty:
+                    if not self.status.empty:
                         print('\nNo Response, sending last known status')
-                        return self.sensors()
+                        return self.status
                     else:
                         return '\nNo Response'
 
-            self.mosquitto.new_status = False
-        return self.sensors()
+            self.new_status_flag = False
+        return self.status
 
     def run(self):
         """Initialize thing. """

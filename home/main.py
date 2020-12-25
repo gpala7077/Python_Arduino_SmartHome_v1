@@ -81,7 +81,8 @@ class Home(Main):
 
             for result in as_completed(status):  # Wait until all things have been read
                 df = df.append(result.result())
-        return df
+        self.status = df
+        return self.status
 
     def status_interval(self, repeat, quit_event):
         """Perpetually request a status update"""
@@ -94,9 +95,10 @@ class Home(Main):
         else:
             Timer(repeat, self.status_interval, args=[repeat, quit_event]).start()
             data = self.current_status()
-            timestamp = [datetime.now()] * data.shape[0]
-            data['history_timestamp'] = timestamp
-            self.db.replace_insert_data('insert', 'history', data)
+            if not data.empty:
+                timestamp = [datetime.now()] * data.shape[0]
+                data['history_timestamp'] = timestamp
+                self.db.replace_insert_data('insert', 'history', data)
 
     def start_rooms(self):
         for room in self.rooms:  # Begin room sub-threads
@@ -117,5 +119,5 @@ class Home(Main):
 
 if __name__ == '__main__':
     main = Home('executor', credentials)  # Create Main class
-    main.initialize()  # Initialize login.kv
-    main.run()  # Run login.kv program
+    main.initialize()  # Initialize home
+    main.run()  # Run main loop
