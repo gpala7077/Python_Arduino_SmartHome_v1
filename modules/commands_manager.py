@@ -352,11 +352,13 @@ class Commands:
                         started = datetime.now()
                         i += 1
 
-                args = ['check_temperature', command.command_value,
-                        command.command_sensor]  # override command_value, additional argument
-                self.timers.update(
-                    {command.command_type: Timer(interval=60 * 5, function=self.execute, args=args)})
-                self.timers[command.command_type].start()
+                if command.command_sensor in ('cool', 'heat'):
+
+                    args = ['check_temperature', command.command_value,
+                            command.command_sensor]  # override command_value, additional argument
+                    self.timers.update(
+                        {command.command_type: Timer(interval=5, function=self.execute, args=args)})
+                    self.timers[command.command_type].start()
 
             elif command.command_type == 'HVAC' and command.command_sensor == 'check':
                 current_temperature = self.current_status().query('sensor_type=="temperature"')  # Get all temp readings
@@ -369,12 +371,14 @@ class Commands:
 
                     print('Requested temperature reached!')
                     print(self.execute('turn_off_HVAC'))
+                    self.timers.pop(command.command_type)
 
                 else:
+
                     self.timers.pop(command.command_type)
                     args = ['check_temperature', command.command_value, args]  # override command_value,
                     self.timers.update(
-                        {command.command_type: Timer(interval=60 * 5, function=self.execute, args=args)})
+                        {command.command_type: Timer(interval=5, function=self.execute, args=args)})
                     self.timers[command.command_type].start()
 
             # ***************** Phillips Hue - Third Party Commands *****************
