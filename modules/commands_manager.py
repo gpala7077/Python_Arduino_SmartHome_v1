@@ -362,7 +362,7 @@ class Commands:
                 current_temperature = self.current_status().query('sensor_type=="temperature"')  # Get all temp readings
                 current_temperature = current_temperature['sensor_value'].mean()  # Calculate average
                 current_temperature = (current_temperature * 1.8) + 32  # Convert to F, comment out for Celcius
-
+                print('Currently {}ing home to {}.'.format(args, command.command_value))
                 if \
                         (args == 'cool' and current_temperature <= int(command.command_value)) or \
                         (args == 'heat' and current_temperature >= int(command.command_value)):
