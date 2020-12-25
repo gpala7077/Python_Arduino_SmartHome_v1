@@ -183,8 +183,7 @@ class Database:
 
         group_data = self.query('select * from home_groups where group_id '
                                 'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
-                                [room_id, 2]).to_dict(orient='records')
-
+                                [room_id, 2])
         # Get all mosquitto channels
         channels = self.query('select * from mosquitto_channels')
         channels = channels.replace('room_name', room_data['room_name'], regex=True)  # prepare channels

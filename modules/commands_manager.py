@@ -2,7 +2,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from threading import Timer
+from threading import Timer, Thread
 
 import pandas as pd
 
@@ -21,11 +21,8 @@ class Action(Timer):
 
     """
 
-    def __init__(self, command, interval, fn, args=None):
-        if args is None:
-            args = []
-        command_arguments = [command] + args
-        super().__init__(interval, fn, args=[command_arguments])  # call super class
+    def __init__(self, command, interval, fn):
+        super().__init__(interval, fn, args=[command])  # call super class
         self.start()  # Start timer
 
 
@@ -296,10 +293,14 @@ class Commands:
                 command = Command(self.data['commands_data'].query(  # Get exact command record ID
                     'command_record_id == "{}"'.format(command)).to_dict(orient='records')[0])
             else:
-                command = Command(self.data['commands_data'].query(
+                data = self.data['commands_data'].query(
                     'command_name == "{}" and '
                     'info_id == "{}" and '
-                    'info_level == "{}"'.format(command, self.data['info_id'], self.data['info_level'])))
+                    'info_level == "{}"'.format(command, self.data['info_id'], self.data['info_level']))
+                if data.empty:
+                    print(data)
+                    print(command, self.data['info_id'], self.data['info_level'])
+                command = Command(data)
 
         elif isinstance(command, pd.DataFrame):
             # If passed command is a data frame. return a Rule object
@@ -341,6 +342,7 @@ class Commands:
 
         if isinstance(command, Command):  # If object is of type Command
             # ***************** Raspberry Pi MCU commands *****************
+
             if command.command_type == 'write':
                 self.r_pi_read_write(command.get_query(), 'write', command.command_value)
 
@@ -351,6 +353,9 @@ class Commands:
             elif command.command_type == 'read':
                 result = self.r_pi_read_write(command.get_query())
                 self.mosquitto.broadcast(self.data['mqtt_data']['channels_dict']['thing_info'], result)
+
+            if 'HVAC' in command.command_sensor:
+                time.sleep(10)
 
             # ***************** HVAC Commands *****************
             elif command.command_type == 'HVAC' and (command.command_sensor == 'heat' or
@@ -363,40 +368,35 @@ class Commands:
                 command_sequence = {
                     'heat': ('AC_off', 'fan_off', 'heat_on', 'fan_on'),
                     'cool': ('heat_off', 'fan_off', 'AC_on', 'fan_on'),
-                    'off':  ('Ac_off', 'heat_off', 'fan_off')
+                    'off': ('AC_off', 'heat_off', 'fan_off')
                 }
                 for i in range(len(command_sequence[command.command_sensor])):
-                    print(self.execute('room_command', command_sequence[i]))
+                    self.execute('room_command', command_sequence[command.command_sensor][i])
 
-                    sleep_sequence = {
-                        'heat': (1, 30)[i % 2 == 0],
-                        'cool': (1, 30)[i % 2 == 0],
-                        'off': (1, 30)[i % 2 == 0]
-                    }
+                args = ['check_temperature', command.command_value,
+                        command.command_sensor]  # override command_value, additional argument
+                self.timers.update(
+                    {command.command_type: Timer(interval=10, function=self.execute, args=args)})
+                self.timers[command.command_type].start()
 
-                    print('sleeping for {} seconds(s)'.format(sleep_sequence[command.command_sensor]))
-                    time.sleep(sleep_sequence[command.command_sensor])
-                    args = [command.command_value, command.command_sensor] # override command_value, additional argument
-                    self.timers.update(
-                        {command.command_type: Action('check_temperature', 10, self.execute, args=args)})
-
-            elif command.command_type == 'HVAC' and command.command_type == 'check':
+            elif command.command_type == 'HVAC' and command.command_sensor == 'check':
                 current_temperature = self.current_status().query('sensor_type=="temperature"')  # Get all temp readings
-                current_temperature = current_temperature['sensor_value'].mean()                # Calculate average
-                current_temperature = (current_temperature * 1.8) + 32          # Convert to F, comment out for Celcius
+                current_temperature = current_temperature['sensor_value'].mean()  # Calculate average
+                current_temperature = (current_temperature * 1.8) + 32  # Convert to F, comment out for Celcius
 
                 if \
-                        (args == 'cool' and current_temperature <= command.command_value) or \
-                        (args == 'heat' and current_temperature >= command.command_value):
+                        (args == 'cool' and current_temperature <= int(command.command_value)) or \
+                                (args == 'heat' and current_temperature >= int(command.command_value)):
 
                     print('Requested temperature reached!')
                     print(self.execute('turn_off_HVAC'))
 
                 else:
                     self.timers.pop(command.command_type)
-                    args = [command.command_value, args]   # override command_value, additional argument
+                    args = ['check_temperature', command.command_value, args]  # override command_value,
                     self.timers.update(
-                        {command.command_type: Action('check_temperature', 10, self.execute, args=args)})
+                        {command.command_type: Timer(interval=10, function=self.execute, args=args)})
+                    self.timers[command.command_type].start()
 
             # ***************** Phillips Hue - Third Party Commands *****************
             elif command.command_type == 'hue':
@@ -436,7 +436,6 @@ class Commands:
 
             # ***************** Broadcast commands *****************
             elif command.command_type == 'broadcast':
-
                 if command.command_sensor == 'group':
                     channel = self.data['mqtt_data']['channels'].query('channel_name == "group_commands"')
                     group_name = self.data['group_data'].query('info_id == {} and info_level == {}'.format(
@@ -448,8 +447,9 @@ class Commands:
                     self.mosquitto.broadcast(channel, command.command_value)
 
                 elif 'thing' in command.command_sensor:
-                    num = list(filter(lambda x: x.isdigit(), command.command_sensor))[0]
+                    num = int(list(filter(lambda x: x.isdigit(), command.command_sensor))[0])
                     channel = self.data['mqtt_data']['broadcast'][num]
+
                     self.mosquitto.broadcast(channel, command.command_value)
 
                 elif command.command_sensor == 'room':
@@ -480,13 +480,11 @@ class Commands:
 
     def process_rule(self, rule, status):
         if rule.check_conditions(status):  # If Rule passes all conditions
-            if rule.rule_timer > 0 and rule.rule_sensor in self.timers:  # If timer exists, cancel and replace
+            if rule.rule_sensor in self.timers:  # If timer exists, cancel and replace
                 self.timers[rule.rule_sensor].cancel()
-                self.timers.update(
-                    {rule.rule_sensor: Action(rule.commands[1], rule.rule_timer, self.execute)})
 
-            elif rule.rule_timer > 0:  # Create new timer
+            if rule.rule_timer > 0:  # Create new timer
                 self.timers.update(
-                    {rule.rule_sensor: Action(rule.commands[1], rule.rule_timer, self.execute)})
-
+                    {rule.rule_sensor: Timer(interval=rule.rule_timer, function=self.execute, args=[rule.commands[1]])})
+                self.timers[rule.rule_sensor].start()
             return self.execute(rule.commands[0])
