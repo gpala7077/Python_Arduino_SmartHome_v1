@@ -49,7 +49,6 @@ class Condition:
         data : DataFrame
             Pandas data frame containing the filtered data for condition.
         """
-
         if self.condition_type == 'sum':  # Check sum
             return eval('{}{}{}'.format(data['sensor_value'].sum(), self.condition_logic, self.condition_value))
 
@@ -412,17 +411,15 @@ class Commands:
                     self.third_party['sonos'].listen(command.command_value)
 
                 elif command.command_sensor == 'speak':
-                    current = self.third_party['sonos'].player.volume
-                    self.third_party['sonos'].player.volume += 25
+                    self.third_party['sonos'].player.volume += 20
                     self.third_party['sonos'].speak(command.command_value)
-                    self.third_party['sonos'].player.volume = current
+                    self.third_party['sonos'].player.volume -= 20
 
             # ***************** Broadcast commands *****************
             elif command.command_type == 'broadcast':
                 if command.command_sensor == 'group':
                     channel = self.data['mqtt_data']['channels'].query('channel_name == "group_commands"')
-                    group_name = self.data['group_data'].query('info_id == {} and info_level == {}'.format(
-                        self.data['info_id'], self.data['info_level']))['group_name'].tolist()[0]
+                    group_name = self.data['group_data']['group_name'].tolist()[0]
 
                     channel = channel.replace('group_name', group_name, regex=True)
                     channel = channel['channel_broadcast'].tolist()

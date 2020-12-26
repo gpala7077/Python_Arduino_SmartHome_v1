@@ -40,7 +40,7 @@ class Home(Main):
         super(Home, self).initialize()  # Call parent class
         self.mosquitto.role = self.role
         self.initialize_third_party()  # Initialize third-party APIs
-        self.third_party['push'].commands = self.commands   # Give access to commands class to PushBullet API
+        self.third_party['push'].commands = self.commands  # Give access to commands class to PushBullet API
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
         self.commands.current_status = self.current_status  # reference status to commands
         for room in self.rooms:  # Iterate through each room
@@ -54,7 +54,8 @@ class Home(Main):
     def initialize_third_party(self):  # Initialize 3rd party apps
         """Initialize third-party applications."""
 
-        self.third_party.update({'hue': Hue(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
+        self.third_party.update(
+            {'hue': Hue(ip_address='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
         self.third_party.update({'push': Push('o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
         self.third_party.update({'sonos': Sonos('192.168.50.59')})
 
@@ -64,14 +65,15 @@ class Home(Main):
         """Get current home status."""
 
         print(
-            'Getting {} status for {} | {}'.format(['last known', 'current'][(current==True)],
+            'Getting {} status for {} | {}'.format(['last known', 'current'][(current == True)],
                                                    self.__class__.__name__, self.name))
         df = pd.DataFrame(columns=['sensor_name', 'sensor_type', 'sensor_value'])  # Create empty data frame
 
         status = []  # Initialize empty condition list
         with ThreadPoolExecutor() as executor:  # Begin sub-threads
             for room in self.rooms:
-                status.append(executor.submit(self.rooms[room].current_status, current=current)) # submit to thread pool
+                status.append(
+                    executor.submit(self.rooms[room].current_status, current=current))  # submit to thread pool
 
             for result in as_completed(status):  # Wait until all things have been read
                 df = df.append(result.result())
@@ -104,9 +106,8 @@ class Home(Main):
         super(Home, self).run()  # Call parent class
 
         quit_event = Event()
-        repeat = 60 * 5
+        repeat = 60 * 60
         self.status_interval(repeat, quit_event)
         print(self.start_rooms())
 
         # Thread(target=self.third_party['push'].listen()).start() # Listen for commands from PushBullet API - home lvl
-
