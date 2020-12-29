@@ -31,7 +31,7 @@ class Sonos:
         self.tts(message)
         time.sleep(duration)
         self.player.stop()
-        pause = True
+        pause = False
 
         if current_transport_info in ["PLAYING", "PAUSED_PLAYBACK"]:
             self.player.play_from_queue(0)

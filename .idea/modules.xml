@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/smart_home.iml" filepath="$PROJECT_DIR$/.idea/smart_home.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../smart_home_KivyMD/.idea/smart_home_KivyMD.iml" filepath="$PROJECT_DIR$/../smart_home_KivyMD/.idea/smart_home_KivyMD.iml" />
     </modules>
   </component>
 </project>

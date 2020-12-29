@@ -17,14 +17,14 @@ class Hue:
 
     """
 
-    def __init__(self, ip_address, user):
-        self.ip_address = ip_address  # Set phillips ip address
+    def __init__(self, ip_addr, user):
+        self.ip_addr = ip_addr  # Set phillips ip address
         self.user = user  # Set user
         self.data = None  # Initialize empty data
         self.load()  # Load all data
 
     def load(self):
-        url = 'http://{}/api/{}'.format(self.ip_address, self.user)
+        url = 'http://{}/api/{}'.format(self.ip_addr, self.user)
         get_data = requests.get(url=url)
         self.data = get_data.json()
         return self.data
@@ -41,7 +41,7 @@ class Hue:
 
         """
 
-        url = 'http://{}/api/{}/lights/{}/state'.format(self.ip_address, self.user, hue_id)
+        url = 'http://{}/api/{}/lights/{}/state'.format(self.ip_addr, self.user, hue_id)
         response = requests.put(url=url, data=light_command).json()
         return response
 
@@ -57,13 +57,13 @@ class Hue:
 
         """
 
-        url = 'http://{}/api/{}/groups/{}/action'.format(self.ip_address, self.user, group_id)
+        url = 'http://{}/api/{}/groups/{}/action'.format(self.ip_addr, self.user, group_id)
         response = requests.put(url=url, data=group_command).json()
         return response
 
     def get_group(self, group_id):
         """Returns phillip's hue group data"""
-        url = 'http://{}/api/{}/groups/{}'.format(self.ip_address, self.user, group_id)
+        url = 'http://{}/api/{}/groups/{}'.format(self.ip_addr, self.user, group_id)
         response = requests.get(url=url).json()
         return response
 
@@ -84,6 +84,6 @@ class Hue:
         }
 
         group_command = json.dumps(group_command)
-        url = 'http://{}/api/{}/groups/'.format(self.ip_address, self.user)
+        url = 'http://{}/api/{}/groups/'.format(self.ip_addr, self.user)
         response = requests.post(url=url, data=group_command).json()
         return response
