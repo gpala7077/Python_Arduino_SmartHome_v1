@@ -9,6 +9,8 @@ credentials = {
     'host': '192.168.50.173'}
 
 thing_id = sys.argv[1]
+# thing_id = 1
+# thing_id = 2
 
 
 def main():

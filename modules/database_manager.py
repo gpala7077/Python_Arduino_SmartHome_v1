@@ -48,10 +48,13 @@ class Database:
                 self.cursor.execute(query)
 
             data = pd.DataFrame(self.cursor.fetchall())
-            column_names = [col_name[0] for col_name in self.cursor.description]
+            if not data.empty:
+                column_names = [col_name[0] for col_name in self.cursor.description]
 
-            data.columns = column_names
-            return data
+                data.columns = column_names
+                return data
+            else:
+                return None
 
         elif 'insert' in query:  # If query is insert type. return primary key of the inserted row.
             if values is not None:
@@ -274,7 +277,6 @@ class Database:
                                 [1, 1]).to_dict(orient='records')
 
         hue_groups = self.query('select group_id, name from hue_groups')
-
         group_id = hue_groups.query('name == "{}"'.format('Home'))['group_id'].tolist()[0]
         hue_data = {'group_id': group_id, 'hue_groups': hue_groups, 'hue_lights': None}
 

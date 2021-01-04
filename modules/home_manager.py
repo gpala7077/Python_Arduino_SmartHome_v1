@@ -4,10 +4,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 from modules.hue_manager import Hue
 from modules.main_manager import Main
+from modules.project_manager import Projects
 from modules.push_manager import Push
 from modules.room_manager import Room
 from modules.sonos_manager import Sonos
 from modules.ifttt_manager import WebHooks_IFTTT
+import time
 
 
 class Home(Main):
@@ -40,6 +42,7 @@ class Home(Main):
 
         super(Home, self).initialize()  # Call parent class
         self.mosquitto.role = self.role
+        self.projects.db = self.db
         self.initialize_third_party()  # Initialize third-party APIs
         self.third_party['push'].commands = self.commands  # Give access to commands class to PushBullet API
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
@@ -96,6 +99,23 @@ class Home(Main):
                 data['history_timestamp'] = timestamp
                 self.db.replace_insert_data('insert', 'history', data)
 
+    def track_schedule(self, quit_event):
+        time_block = self.projects.get_current_time_block()
+        time_block = time_block['time_block_id'].tolist()[0]
+        task = self.projects.get_current_task(time_block).to_dict(orient='records')[0]
+
+        time_diff = self.projects.get_time_block(task['task_block_end'])['time_block_end'].tolist()[0]
+        time_diff = time_diff - datetime.now()
+
+        title, body = self.projects.format_task(task, time_diff)
+
+        print('This task will end in ....')
+        print('{} hours, {} minutes, and {} seconds'.format(
+            time_diff.seconds // 3600, (time_diff.seconds // 60) % 60, time_diff.seconds % 60))
+
+        self.third_party['push'].push.push_note(title=title, body=body)
+        Timer(function=self.track_schedule, args=[quit_event], interval=time_diff.seconds+5).start()
+
     def start_rooms(self):
         for room in self.rooms:  # Begin room sub-threads
             Thread(target=self.rooms[room].run).start()
@@ -104,10 +124,10 @@ class Home(Main):
     def run(self):
         """Run all sub-threads."""
         super(Home, self).run()  # Call parent class
-
         quit_event = Event()
         repeat = 60 * 60
         self.status_interval(repeat, quit_event)
-        print(self.start_rooms())
+        self.track_schedule(quit_event)
+        Thread(target=self.third_party['push'].listen(self.on_push)).start() # Listen for pushes from PushBullet API
 
-        # Thread(target=self.third_party['push'].listen()).start() # Listen for commands from PushBullet API - home lvl
+        print(self.start_rooms())

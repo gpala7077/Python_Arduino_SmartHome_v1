@@ -419,10 +419,16 @@ class Commands:
             elif command.command_type == 'broadcast':
                 if command.command_sensor == 'group':
                     channel = self.data['mqtt_data']['channels'].query('channel_name == "group_commands"')
-                    group_name = self.data['group_data']['group_name'].tolist()[0]
 
-                    channel = channel.replace('group_name', group_name, regex=True)
-                    channel = channel['channel_broadcast'].tolist()
+                    if isinstance(self.data['group_data'], list):
+                        group_name = self.data['group_data'][0]['group_name']
+                        channel = channel.replace('group_name', group_name, regex=True)
+                        channel = channel['channel_broadcast'].tolist()
+
+                    elif isinstance(self.data['group_data'], dict):
+                        group_name = self.data['group_data']['group_name']
+                        channel = channel.replace('group_name', group_name, regex=True)
+                        channel = channel['channel_broadcast'].tolist()
 
                     self.mosquitto.broadcast(channel, command.command_value)
 

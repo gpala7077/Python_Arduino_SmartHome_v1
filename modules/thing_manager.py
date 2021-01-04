@@ -148,9 +148,10 @@ class MCU:
                 value = Adafruit_ADS1x15.ADS1115().read_adc(current_row['pin_id'], gain=1)  # read adc value
 
             elif current_row['pin_type'] == 'dht':  # If sensor type is dht
-                humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT11, current_row['pin_id'])
+                humidity, temperature = Adafruit_DHT.read(Adafruit_DHT.DHT11, current_row['pin_id'])
+                if humidity is None and temperature is None:
+                    humidity, temperature = 0.0, 0.0
                 value = {'humidity': humidity, 'temperature': temperature}  # read humidity and temperature
-
             else:
                 value = self.GPIO.input(current_row['pin_id'])  # Read pin value
 
@@ -214,4 +215,3 @@ class Thing_Main(Main):
     def run(self):
         """Start main loop."""
         super(Thing_Main, self).run()  # Call super class
-
