@@ -18,12 +18,11 @@ class Database:
 
     """
 
-    def __init__(self, credentials):
+    def __init__(self):
         # Save credentials
-        self.credentials = credentials
+        self.credentials = None
         self.db = None
         self.cursor = None
-        self.initialize()
 
     def initialize(self):
         """Log in and Set Cursor."""
@@ -121,7 +120,7 @@ class Database:
 
         group_data = self.query('select * from home_groups where group_id '
                                 'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
-                                [thing_id, 3]).to_dict(orient='records')
+                                [thing_id, 3])
 
         # Get all channels and replace room and thing name
         channels = self.query('select channel_name, channel_broadcast from mosquitto_channels')
@@ -184,9 +183,9 @@ class Database:
                                   'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
                                   [room_id, 2]).to_dict(orient='records')
 
-        group_data = self.query('select * from home_groups where group_id '
-                                'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
+        group_data = self.query('select * from home_groups where info_id = %s and info_level=%s',
                                 [room_id, 2])
+
         # Get all mosquitto channels
         channels = self.query('select * from mosquitto_channels')
         channels = channels.replace('room_name', room_data['room_name'], regex=True)  # prepare channels
@@ -274,7 +273,7 @@ class Database:
 
         group_data = self.query('select * from home_groups where group_id '
                                 'IN(select group_id from groups_rooms_things where info_id = %s and info_level=%s)',
-                                [1, 1]).to_dict(orient='records')
+                                [1, 1])
 
         hue_groups = self.query('select group_id, name from hue_groups')
         group_id = hue_groups.query('name == "{}"'.format('Home'))['group_id'].tolist()[0]

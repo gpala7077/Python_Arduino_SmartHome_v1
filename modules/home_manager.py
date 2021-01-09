@@ -44,7 +44,8 @@ class Home(Main):
         self.mosquitto.role = self.role
         self.projects.db = self.db
         self.initialize_third_party()  # Initialize third-party APIs
-        self.third_party['push'].commands = self.commands  # Give access to commands class to PushBullet API
+        if self.third_party['push'] is not None:
+            self.third_party['push'].commands = self.commands  # Give access to commands class to PushBullet API
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
         self.commands.current_status = self.current_status  # reference status to commands
         for room in self.rooms:  # Iterate through each room
@@ -59,9 +60,15 @@ class Home(Main):
         """Initialize third-party applications."""
 
         self.third_party.update({'hue': Hue(ip_addr='192.168.50.34', user='pJPb8WW2wW1P82RKu1sHBLkEQofDMofh2yNDnXzj')})
-        self.third_party.update({'push': Push('o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
         self.third_party.update({'sonos': Sonos('192.168.50.59')})
         self.third_party.update({'ifttt': WebHooks_IFTTT('ckcorpj6ouQG_nn2YGYyQn')})
+
+        try:
+            self.third_party.update({'push': Push('o.aFYUBKPv0sDSwAcFJXkcHj0rYYRCFWZa')})
+
+        except:
+            print('You have been rate limited')
+            self.third_party.update({'push': None})
 
         return 'Third-party initialized'
 
@@ -112,9 +119,12 @@ class Home(Main):
         print('This task will end in ....')
         print('{} hours, {} minutes, and {} seconds'.format(
             time_diff.seconds // 3600, (time_diff.seconds // 60) % 60, time_diff.seconds % 60))
-
-        self.third_party['push'].push.push_note(title=title, body=body)
-        Timer(function=self.track_schedule, args=[quit_event], interval=time_diff.seconds+5).start()
+        if self.third_party['push'] is not None:
+            try:
+                self.third_party['push'].push.push_note(title=title, body=body)
+                Timer(function=self.track_schedule, args=[quit_event], interval=time_diff.seconds+5).start()
+            except:
+                print('You have been rate limited....')
 
     def start_rooms(self):
         for room in self.rooms:  # Begin room sub-threads
@@ -128,6 +138,7 @@ class Home(Main):
         repeat = 60 * 60
         self.status_interval(repeat, quit_event)
         self.track_schedule(quit_event)
-        Thread(target=self.third_party['push'].listen(self.on_push)).start() # Listen for pushes from PushBullet API
+        if self.third_party['push'] is not None:
+            Thread(target=self.third_party['push'].listen(self.on_push)).start() # Listen for pushes from PushBullet API
 
         print(self.start_rooms())

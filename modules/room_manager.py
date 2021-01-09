@@ -38,7 +38,8 @@ class Room(Main):
         """Initialize Room."""
 
         super(Room, self).initialize()  # Call super class
-        # self.mosquitto.role = self.role
+        self.mosquitto.role = self.role
+        self.mosquitto.name = self.name
         self.commands.current_status = self.current_status  # reference status to commands
         self.commands.third_party = self.third_party  # Reference 3rd party API to commands
         for thing in self.things:  # Initialize all things
@@ -99,7 +100,7 @@ class Thing(Main):
         """Initialize thing receiver"""
 
         super(Thing, self).initialize()  # Call super class
-
+        self.mosquitto.name = self.name
         return '{} | {} initialized\n'.format(self.__class__.__name__, self.name)
 
     def current_status(self, current=True):

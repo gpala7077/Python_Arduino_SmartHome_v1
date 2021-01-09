@@ -1,3 +1,4 @@
+import time
 from threading import Thread
 
 import paho.mqtt.client as mqtt
@@ -8,6 +9,7 @@ from modules.miscellaneous import Queue
 class MQTT_Client:
     def __init__(self):
         self.host_ip = None
+        self.name = None
         self.client = mqtt.Client()
         self.messages = Queue('FIFO')
         self.process_message = None
@@ -23,7 +25,7 @@ class MQTT_Client:
 
         msg = message.payload.decode("utf-8")  # Decode message
         topic = message.topic  # Get topic
-        print('\nReceived message!\n{}\n{}\n'.format(topic, msg))
+        print('\n{} Received message!\n{}\n{}\n'.format(self.name, topic, msg))
         self.messages.add((topic, msg))  # Add to queue
 
         return 'Added message to Queue\n'
@@ -52,8 +54,7 @@ class MQTT_Client:
         """Broadcast payload to given channels."""
 
         for channel in channels:  # Send payload to the list of given channels
-            print('\nBroadcasting on...\n{}\nPayload : {}'.format(channel, payload))
+            print('\n{} Broadcasting on...\n{}\nPayload : {}'.format(self.name, channel, payload))
             self.client.publish(channel, str(payload))  # publish mosquitto to broker
-
         return 'Payload sent\n'
 

@@ -41,7 +41,9 @@ class Main:
     """
 
     def __init__(self, credentials):
-        self.db = Database(credentials)  # Set credentials
+        self.db = Database()  # Set credentials
+        self.db.credentials = credentials
+        self.db.initialize()
         self.name = None
         self.third_party = dict()
         self.data = None
@@ -91,8 +93,9 @@ class Main:
         latest_push = self.third_party['push'].push.get_pushes()[0]
         if 'title' not in latest_push:
             if 'send command' in latest_push['body']:
-                command = latest_push['body'].split('send command ')[1]
-
+                command = latest_push['body'].split('send command')[1]
+                command = command.strip()
+                print(command)
                 self.third_party['push'].push.push_note('Commands', self.commands.execute(command))
 
             elif 'task tracker' in latest_push['body']:
@@ -100,7 +103,7 @@ class Main:
                 task_id = list(filter(lambda x: x.isdigit(), latest_push['body']))
                 task_id = int(''.join(task_id))
 
-                notes = latest_push['body'].split(' notes ')[1]
+                notes = latest_push['body'].split('notes')[1]
                 not_completed = 'not completed' in latest_push['body']
                 completed = 'completed' in latest_push['body']
 

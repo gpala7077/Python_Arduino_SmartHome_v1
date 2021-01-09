@@ -1,4 +1,5 @@
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from threading import Timer
@@ -415,32 +416,37 @@ class Commands:
                     self.third_party['sonos'].speak(command.command_value)
                     self.third_party['sonos'].player.volume -= 20
 
+            # ***************** IFTTT - Third Party Commands *****************
+            elif command.command_type == 'ifttt':
+                if command.command_sensor == 'lutron':
+                    self.third_party['ifttt'].send(command.command_value)
+
             # ***************** Broadcast commands *****************
             elif command.command_type == 'broadcast':
                 if command.command_sensor == 'group':
                     channel = self.data['mqtt_data']['channels'].query('channel_name == "group_commands"')
+                    group_name = self.data['group_data'].query(
+                        'info_id == {} and info_level == {}'.format(self.data['info_id'], self.data['info_level'])
+                    )['group_name'].tolist()
 
-                    if isinstance(self.data['group_data'], list):
-                        group_name = self.data['group_data'][0]['group_name']
-                        channel = channel.replace('group_name', group_name, regex=True)
-                        channel = channel['channel_broadcast'].tolist()
-
-                    elif isinstance(self.data['group_data'], dict):
-                        group_name = self.data['group_data']['group_name']
-                        channel = channel.replace('group_name', group_name, regex=True)
-                        channel = channel['channel_broadcast'].tolist()
+                    channel = channel.replace('group_name', group_name[0], regex=True)
+                    channel = channel['channel_broadcast'].tolist()
 
                     self.mosquitto.broadcast(channel, command.command_value)
 
-                elif 'thing' in command.command_sensor:
+                elif 'thing_' in command.command_sensor:
                     num = int(list(filter(lambda x: x.isdigit(), command.command_sensor))[0])
                     channel = self.data['mqtt_data']['broadcast'][num]
 
                     self.mosquitto.broadcast(channel, command.command_value)
 
-                elif command.command_sensor == 'room':
-                    channel = self.data['mqtt_data']['channels_dict']['room_info']
-                    self.mosquitto.broadcast(channel, str(self.current_status(current=True).to_dict(orient='list')))
+                elif 'room_' in command.command_sensor:
+                    room_name = command.command_sensor.split('_')[1]
+                    channel = self.data['mqtt_data']['channels'].query('channel_name == "room_commands"')
+                    channel = channel.replace('room_name', room_name, regex=True)
+                    channel = channel['channel_broadcast'].tolist()
+
+                    self.mosquitto.broadcast(channel, command.command_value)
 
             # ***************** App commands *****************
             elif command.command_type == 'app':
